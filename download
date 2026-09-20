@@ -1,4 +1,12 @@
-node_modules/
-.wrangler/
-.dev.vars
+**/node_modules
+node_modules
+node_modules/**
+.git
+.git/**
+.wrangler
+.wrangler/**
+worker.js
+wrangler.jsonc
+.gitignore
+.assetsignore
 *.zip
