@@ -639,7 +639,7 @@ body.print-one #weeklyPrintArea .weekly-receipt-seal{width:23px!important;height
       <p class="muted">PC / iPhone間を自動同期できます。設定保存後は変更を自動保存し、他端末の更新を定期取得します。手動保存・読込も使用できます。</p>
       <div class="grid2">
         <div><label>Firebase Realtime Database URL</label><input id="cloudDbUrl" placeholder="https://xxxxx-default-rtdb.firebaseio.com"></div>
-        <div><label>保存パス / 店舗ID</label><input id="cloudPath" placeholder="blow2nd/main"></div>
+        <div><label>保存パス / 店舗ID</label><input id="cloudPath" placeholder="kagoshima/main"></div>
         <div><label>認証トークン 任意</label><input id="cloudAuth" type="password" placeholder="未設定なら空欄"></div>
         <div><label>端末名</label><input id="cloudDevice" placeholder="PC / iPhone など"></div>
       </div>
@@ -1165,7 +1165,7 @@ function normalizeCloudUrl(url){
   if(second>0)u=u.slice(0,second);
   return u.replace(/\/+$/,'');
 }
-function normalizeCloudPath(path){return String(path||'blow2nd/main').trim().replace(/^\/+|\/+$/g,'').replace(/[^a-zA-Z0-9_\-\/]/g,'_')}
+function normalizeCloudPath(path){return String(path||'kagoshima/main').trim().replace(/^\/+|\/+$/g,'').replace(/[^a-zA-Z0-9_\-\/]/g,'_')}
 function buildCloudEndpoint(cfg){
   const base=normalizeCloudUrl(cfg.dbUrl);
   const path=normalizeCloudPath(cfg.path);
@@ -1178,7 +1178,7 @@ function buildCloudEndpoint(cfg){
 function renderCloudSync(){
   const cfg=getCloudConfig();
   const db=document.getElementById('cloudDbUrl'); if(db)db.value=cfg.dbUrl||'';
-  const path=document.getElementById('cloudPath'); if(path)path.value=cfg.path||'blow2nd/main';
+  const path=document.getElementById('cloudPath'); if(path)path.value=cfg.path||'kagoshima/main';
   const auth=document.getElementById('cloudAuth'); if(auth)auth.value=cfg.auth||'';
   const dev=document.getElementById('cloudDevice'); if(dev)dev.value=cfg.device||('device-'+Math.random().toString(36).slice(2,8));
   const last=cfg.lastSyncAt?'\n最終同期: '+new Date(cfg.lastSyncAt).toLocaleString()+' / '+(cfg.lastAction||''):'';
@@ -1187,7 +1187,7 @@ function renderCloudSync(){
 function saveCloudConfig(){
   const cfg={
     dbUrl:normalizeCloudUrl(document.getElementById('cloudDbUrl')?.value||''),
-    path:normalizeCloudPath(document.getElementById('cloudPath')?.value||'blow2nd/main'),
+    path:normalizeCloudPath(document.getElementById('cloudPath')?.value||'kagoshima/main'),
     auth:document.getElementById('cloudAuth')?.value||'',
     device:document.getElementById('cloudDevice')?.value||'unknown-device'
   };
