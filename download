@@ -1,7 +1,5 @@
 worker.js
 wrangler.jsonc
-package.json
-package-lock.json
 .assetsignore
 .git
 .git/**
