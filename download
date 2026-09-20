@@ -1,8 +1,4 @@
-worker.js
-wrangler.jsonc
-.assetsignore
-.git
-.git/**
-node_modules
-node_modules/**
+node_modules/
+.wrangler/
+.dev.vars
 *.zip
