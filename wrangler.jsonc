@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "blow-kagoshima-pos",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-20",
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "POS_SYNC",
+        "class_name": "PosSyncStore"
+      }
+    ]
+  },
+  "exports": {
+    "PosSyncStore": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  }
+}

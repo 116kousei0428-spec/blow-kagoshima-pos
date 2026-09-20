@@ -638,7 +638,7 @@ body.print-one #weeklyPrintArea .weekly-receipt-seal{width:23px!important;height
       <h3>PC / iPhone 共有データ</h3>
       <p class="muted">PC / iPhone間を自動同期できます。設定保存後は変更を自動保存し、他端末の更新を定期取得します。手動保存・読込も使用できます。</p>
       <div class="grid2">
-        <div><label>Firebase Realtime Database URL</label><input id="cloudDbUrl" placeholder="https://xxxxx-default-rtdb.firebaseio.com"></div>
+        <div><label>Cloudflare 同期URL</label><input id="cloudDbUrl" placeholder="現在の公開URLを自動使用"></div>
         <div><label>保存パス / 店舗ID</label><input id="cloudPath" placeholder="kagoshima/main"></div>
         <div><label>認証トークン 任意</label><input id="cloudAuth" type="password" placeholder="未設定なら空欄"></div>
         <div><label>端末名</label><input id="cloudDevice" placeholder="PC / iPhone など"></div>
@@ -653,13 +653,13 @@ body.print-one #weeklyPrintArea .weekly-receipt-seal{width:23px!important;height
     </div>
     <div class="card">
       <h3>設定移行</h3>
-      <p class="muted">iPhone側に同じFirebase設定を入れるための補助です。</p>
+      <p class="muted">iPhone側に同じクラウド同期設定を入れるための補助です。</p>
       <div class="row"><button class="btn out" onclick="exportCloudConfig()">同期設定を書き出し</button><button class="btn out" onclick="document.getElementById('cloudConfigFile').click()">同期設定を読み込み</button></div>
       <input id="cloudConfigFile" type="file" accept="application/json" style="display:none" onchange="importCloudConfig(event)">
     </div>
   </section>
 
-  <section id="settings" class="screen"><div class="card admin-only" style="margin-bottom:12px;border-color:#bfdbfe"><div class="row"><h2>メンテナンス</h2><button class="btn out" onclick="renderMaintenanceStatus()">再確認</button><button class="btn warn" onclick="runSafeMaintenance()">安全メンテナンス実行</button></div><p class="muted">表示用バックアップ履歴など一時データのみ整理します。過去会計・給与・締め票・キャスト・Firebase設定は保持します。</p><div id="maintenanceStatus" class="muted"></div></div><div class="card"><h2>店舗標準 給与・バック設定</h2><p class="muted">ここを変えると標準設定を使うキャスト、新規追加キャスト、給与計算・バック計算に反映します。</p><div class="grid4" id="defaultBackSettingsBox"></div></div><div class="grid2" style="margin-top:12px"><div class="card"><h2>キャスト管理</h2><p class="muted">キャストの追加・名前変更・給与設定・表示切替は「キャスト」欄へ移動しました。</p><button class="btn blue" onclick="openScreen('casts')">キャスト欄を開く</button></div><div class="card"><h2>シャンパン原価</h2><div class="scroll"><table><thead><tr><th>商品</th><th class="right">売価</th><th class="right">原価</th></tr></thead><tbody id="champRows"></tbody></table></div></div></div><div class="card" style="margin-top:12px;border-color:#fecaca"><h2 class="danger">初期化</h2><p class="muted">試運転データを消して、キャスト・卓・売上・履歴・仕入れ支出をすべて初期状態に戻します。</p><button class="btn bad" onclick="resetAllData()">全データ初期化</button>
+  <section id="settings" class="screen"><div class="card admin-only" style="margin-bottom:12px;border-color:#bfdbfe"><div class="row"><h2>メンテナンス</h2><button class="btn out" onclick="renderMaintenanceStatus()">再確認</button><button class="btn warn" onclick="runSafeMaintenance()">安全メンテナンス実行</button></div><p class="muted">表示用バックアップ履歴など一時データのみ整理します。過去会計・給与・締め票・キャスト・クラウド同期設定は保持します。</p><div id="maintenanceStatus" class="muted"></div></div><div class="card"><h2>店舗標準 給与・バック設定</h2><p class="muted">ここを変えると標準設定を使うキャスト、新規追加キャスト、給与計算・バック計算に反映します。</p><div class="grid4" id="defaultBackSettingsBox"></div></div><div class="grid2" style="margin-top:12px"><div class="card"><h2>キャスト管理</h2><p class="muted">キャストの追加・名前変更・給与設定・表示切替は「キャスト」欄へ移動しました。</p><button class="btn blue" onclick="openScreen('casts')">キャスト欄を開く</button></div><div class="card"><h2>シャンパン原価</h2><div class="scroll"><table><thead><tr><th>商品</th><th class="right">売価</th><th class="right">原価</th></tr></thead><tbody id="champRows"></tbody></table></div></div></div><div class="card" style="margin-top:12px;border-color:#fecaca"><h2 class="danger">初期化</h2><p class="muted">試運転データを消して、キャスト・卓・売上・履歴・仕入れ支出をすべて初期状態に戻します。</p><button class="btn bad" onclick="resetAllData()">全データ初期化</button>
 <button class="btn out" onclick="document.getElementById('settingRestoreFile').click()">バックアップ読込</button>
 <input id="settingRestoreFile" type="file" accept="application/json" style="display:none" onchange="restoreBackup(event)">
 <hr style="border:none;border-top:1px solid #e5e7eb;margin:14px 0">
@@ -1153,8 +1153,14 @@ function save(){
 
 
 function getCloudConfig(){
-  try{return JSON.parse(localStorage.getItem(CLOUD_KEY)||'{}')||{}}catch(e){return {}}
+  let cfg={};
+  try{cfg=JSON.parse(localStorage.getItem(CLOUD_KEY)||'{}')||{}}catch(e){cfg={}}
+  if(!cfg.dbUrl)cfg.dbUrl=location.origin;
+  if(!cfg.path)cfg.path='kagoshima/main';
+  if(cfg.autoSync===undefined)cfg.autoSync=true;
+  return cfg;
 }
+
 function setCloudStatus(msg,isError=false){
   const el=document.getElementById('cloudStatus');
   if(el){el.textContent=msg; el.style.color=isError?'#dc2626':'#475569'; el.style.fontWeight=isError?'900':'700'}
@@ -1169,7 +1175,7 @@ function normalizeCloudPath(path){return String(path||'kagoshima/main').trim().r
 function buildCloudEndpoint(cfg){
   const base=normalizeCloudUrl(cfg.dbUrl);
   const path=normalizeCloudPath(cfg.path);
-  if(!base)throw new Error('Firebase Database URLが未設定です');
+  if(!base)throw new Error('Cloudflare 同期URLが未設定です');
   if(!path)throw new Error('保存パスが未設定です');
   let url=base+'/'+path+'.json';
   if(cfg.auth)url+='?auth='+encodeURIComponent(cfg.auth);
@@ -1177,7 +1183,7 @@ function buildCloudEndpoint(cfg){
 }
 function renderCloudSync(){
   const cfg=getCloudConfig();
-  const db=document.getElementById('cloudDbUrl'); if(db)db.value=cfg.dbUrl||'';
+  const db=document.getElementById('cloudDbUrl'); if(db)db.value=cfg.dbUrl||location.origin;
   const path=document.getElementById('cloudPath'); if(path)path.value=cfg.path||'kagoshima/main';
   const auth=document.getElementById('cloudAuth'); if(auth)auth.value=cfg.auth||'';
   const dev=document.getElementById('cloudDevice'); if(dev)dev.value=cfg.device||('device-'+Math.random().toString(36).slice(2,8));
@@ -1186,7 +1192,7 @@ function renderCloudSync(){
 }
 function saveCloudConfig(){
   const cfg={
-    dbUrl:normalizeCloudUrl(document.getElementById('cloudDbUrl')?.value||''),
+    dbUrl:normalizeCloudUrl(document.getElementById('cloudDbUrl')?.value||location.origin),
     path:normalizeCloudPath(document.getElementById('cloudPath')?.value||'kagoshima/main'),
     auth:document.getElementById('cloudAuth')?.value||'',
     device:document.getElementById('cloudDevice')?.value||'unknown-device'
@@ -1201,7 +1207,7 @@ function cloudStatePayload(cfg){
   const cleanState=sanitizeBackupState(state);
   if(!Array.isArray(cleanState.tables)||!cleanState.tables.length)throw new Error('卓データが空のため保存を中止しました');
   return {
-    app:'Blow2nd_POS',
+    app:'Blow_Kagoshima_POS',
     version:'v2.0_beta57_sync_fix',
     backupVersion:1,
     updatedAt:new Date().toISOString(),
@@ -1223,7 +1229,7 @@ async function cloudSave(){
     if(!res.ok)throw new Error('保存失敗 HTTP '+res.status+' '+text);
     let written=null;
     try{written=text?JSON.parse(text):null}catch{}
-    if(!written || !(written.state||written.data))throw new Error('Firebaseへの書込結果が空です');
+    if(!written || !(written.state||written.data))throw new Error('クラウドへの書込結果が空です');
     localStorage.setItem(CLOUD_KEY,JSON.stringify(Object.assign({},cfg,{lastSyncAt:Date.now(),lastAction:'save'})));
     setCloudStatus('クラウド保存完了。\n更新: '+new Date(payload.updatedAt).toLocaleString()+'\n端末: '+payload.device+'\n保存パス: '+cfg.path);
   }catch(e){setCloudStatus('クラウド保存エラー: '+(e.message||e),true)}
@@ -1265,7 +1271,7 @@ async function cloudCheck(){
 function exportCloudConfig(){
   const cfg=getCloudConfig();
   const blob=new Blob([JSON.stringify(cfg,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='blow2nd_cloud_sync_config.json';a.click();URL.revokeObjectURL(a.href);
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kagoshima_cloud_sync_config.json';a.click();URL.revokeObjectURL(a.href);
 }
 function importCloudConfig(ev){
   const f=ev.target.files&&ev.target.files[0]; if(!f)return;
@@ -2714,7 +2720,7 @@ function backupFileName(reason='manual'){
 }
 function buildBackupPayload(reason='manual'){
   return {
-    app:'Blow2nd_POS',
+    app:'Blow_Kagoshima_POS',
     version:'v3.2_storage_overflow_guard',
     backupVersion:1,
     reason,
@@ -4375,7 +4381,7 @@ if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.s
   function storageUsage(){let total=0;for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i)||'';const v=localStorage.getItem(k)||'';total+=(k.length+v.length)*2;}return total}
   function bytesLabel(n){return n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB'}
   window.renderMaintenanceStatus=function(){const el=document.getElementById('maintenanceStatus');if(el)el.textContent=`ブラウザ保存使用量（概算）：${bytesLabel(storageUsage())} / 表示用バックアップ履歴：${(state.backups||[]).length}件 / 容量超過時はIndexedDBへ自動退避`;};
-  window.runSafeMaintenance=function(){if(!requireAdmin())return;if(!confirm('安全メンテナンスを実行します。\n\n削除：表示用バックアップ履歴・期限切れ修正コード・古い修正ログ（500件超）\n保持：過去会計・給与・締め票・キャスト・Firebase設定\n\n実行しますか？'))return;const before=storageUsage();state.backups=[];state.receiptEditAudit=(state.receiptEditAudit||[]).slice(0,500);if(state.receiptEditOtp&&Date.now()>Number(state.receiptEditOtp.expiresAt||0))state.receiptEditOtp=null;save();const after=storageUsage();renderMaintenanceStatus();alert(`メンテナンス完了。\n整理前：${bytesLabel(before)}\n整理後：${bytesLabel(after)}\n削減：${bytesLabel(Math.max(0,before-after))}`);};
+  window.runSafeMaintenance=function(){if(!requireAdmin())return;if(!confirm('安全メンテナンスを実行します。\n\n削除：表示用バックアップ履歴・期限切れ修正コード・古い修正ログ（500件超）\n保持：過去会計・給与・締め票・キャスト・クラウド同期設定\n\n実行しますか？'))return;const before=storageUsage();state.backups=[];state.receiptEditAudit=(state.receiptEditAudit||[]).slice(0,500);if(state.receiptEditOtp&&Date.now()>Number(state.receiptEditOtp.expiresAt||0))state.receiptEditOtp=null;save();const after=storageUsage();renderMaintenanceStatus();alert(`メンテナンス完了。\n整理前：${bytesLabel(before)}\n整理後：${bytesLabel(after)}\n削減：${bytesLabel(Math.max(0,before-after))}`);};
 
   let autoSyncTimer=null,autoSyncPollTimer=null,autoSyncBusy=false,applyingRemoteState=false,lastCloudUpdatedAt='';
   function syncSig(st){try{return JSON.stringify({businessDate:st.businessDate,sales:(st.sales||[]).length,tables:st.tables,casts:st.casts,manualClosingSheets:st.manualClosingSheets,manualClosingDaySheets:st.manualClosingDaySheets,expenses:st.expenses,purchaseFundOpening:st.purchaseFundOpening,purchaseFundTopups:st.purchaseFundTopups,cashFlows:st.cashFlows,unpaids:st.unpaids})}catch{return String(Date.now())}}

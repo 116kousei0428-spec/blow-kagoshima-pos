@@ -1,0 +1,10 @@
+worker.js
+wrangler.jsonc
+package.json
+package-lock.json
+.assetsignore
+.git
+.git/**
+node_modules
+node_modules/**
+*.zip
