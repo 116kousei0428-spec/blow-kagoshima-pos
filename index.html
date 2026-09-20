@@ -571,7 +571,7 @@ body.print-one #weeklyPrintArea .weekly-receipt-seal{width:23px!important;height
     <button class="tab" data-screen="manage" onclick="openScreen('manage')">管理</button>
     <button class="tab" data-screen="weeklyOverview" onclick="openScreen('weeklyOverview')">週間</button>
     <button class="tab" data-screen="backup" onclick="openScreen('backup')">バックアップ</button>
-    <button class="tab" data-screen="cloud" onclick="needPass('cloud')">同期</button>
+    <button class="tab" data-screen="cloud" onclick="openScreen('cloud')">同期</button>
     <button class="tab admin-only" data-screen="settings" onclick="openScreen('settings')">設定</button>
   </div>
   <div class="pwa-note no-print">スマホはブラウザメニューから「ホーム画面に追加」でアプリ風に起動できます。</div>
@@ -581,7 +581,7 @@ body.print-one #weeklyPrintArea .weekly-receipt-seal{width:23px!important;height
     <button data-screen="manage" onclick="openScreen('manage')"><span class="ico">💴</span>管理</button>
     <button data-screen="weeklyOverview" onclick="openScreen('weeklyOverview')"><span class="ico">📅</span>週間</button>
     <button data-screen="backup" onclick="openScreen('backup')"><span class="ico">💾</span>保存</button>
-    <button data-screen="cloud" onclick="needPass('cloud')"><span class="ico">☁️</span>同期</button>
+    <button data-screen="cloud" onclick="openScreen('cloud')"><span class="ico">☁️</span>同期</button>
     <button class="admin-only" data-screen="settings" onclick="openScreen('settings')"><span class="ico">⚙️</span>設定</button>
   </nav>
 
@@ -602,12 +602,12 @@ body.print-one #weeklyPrintArea .weekly-receipt-seal{width:23px!important;height
     </div>
   </section>
   <section id="weeklyOverview" class="screen">
-    <div class="row"><h2>週間給与一覧</h2><button class="btn out" onclick="renderKagoWeeklyOverview()">再読み込み</button></div>
+    <div class="row"><h2>週間一覧</h2><button class="btn out" onclick="renderKagoWeeklyOverview()">再読み込み</button></div>
     <div class="card" style="margin-top:12px"><div class="grid2"><div><label>基準日</label><input id="weeklyOverviewDate" type="date" onchange="renderKagoWeeklyOverview()"></div><div><label>対象週</label><div id="weeklyOverviewRange" class="info"><span>-</span></div></div></div><p class="muted">月曜始まり・日曜締め。その週に実際に出勤したキャストだけを表示し、現在の週間給与から控除・徴収後の支給額合計を表示します。</p></div>
     <div id="weeklyOverviewArea" style="margin-top:12px"></div>
   </section>
   <section id="manage" class="screen">
-    <div class="row"><h2>管理</h2><button id="manageWeeklyBtn" class="btn blue" onclick="openScreen('weeklyOverview')">週間</button><button class="btn blue" onclick="openGuestRatePanel()">入客率</button><button class="btn ok" onclick="startBusinessDay()">営業開始</button><button class="btn blue" onclick="openClosingSheetInput()">締め票入力</button><button class="btn bad" onclick="endBusinessDay()">営業終了</button><button class="btn blue" onclick="makeClosing()">締め票作成</button><button class="btn out admin-only" onclick="openHistoryPanel()">履歴</button><button class="btn blue admin-only" onclick="openReceiptEditPanel()">伝票修正</button><button class="btn warn" onclick="openUnpaidPanel()">未収</button><button class="btn warn admin-only" onclick="openProfitLock()">利益率</button><button class="btn out admin-only" onclick="makeMonthly()">月締め票</button><button class="btn out admin-only" onclick="saveBackupManual()">バックアップ保存</button><button class="btn blue admin-only" onclick="openScreen('backup')">バックアップを見る</button></div>
+    <div class="row"><h2>管理</h2><button id="manageWeeklyBtn" class="btn blue" onclick="openScreen('weeklyOverview')">週間</button><button class="btn out" onclick="openWeeklyClosingOverview()">締め表一覧</button><button class="btn blue" onclick="openGuestRatePanel()">入客率</button><button class="btn ok" onclick="startBusinessDay()">営業開始</button><button class="btn blue" onclick="openClosingSheetInput()">締め票入力</button><button class="btn bad" onclick="endBusinessDay()">営業終了</button><button class="btn blue" onclick="makeClosing()">締め票作成</button><button class="btn out admin-only" onclick="openHistoryPanel()">履歴</button><button class="btn blue admin-only" onclick="openReceiptEditPanel()">伝票修正</button><button class="btn warn" onclick="openUnpaidPanel()">未収</button><button class="btn warn admin-only" onclick="openProfitLock()">利益率</button><button class="btn out admin-only" onclick="makeMonthly()">月締め票</button><button class="btn out admin-only" onclick="saveBackupManual()">バックアップ保存</button><button class="btn blue admin-only" onclick="openScreen('backup')">バックアップを見る</button></div>
     <div class="summary" id="manageSummary"></div><div id="receiptAuditArea" class="admin-only" style="display:none;margin-top:12px"></div>
     <div id="profitArea" style="display:none;margin-top:12px"></div>
     <div class="grid2" style="margin-top:12px">
@@ -988,7 +988,7 @@ repairAllExtensionDurations();
 let appUnlocked = sessionStorage.getItem('lounge_pos_app_unlocked') === '1';
 let appRole = sessionStorage.getItem('lounge_pos_role') || (sessionStorage.getItem('lounge_pos_is_admin') === '1' ? 'admin' : 'viewer');
 let isAdmin = appRole==='admin' || appRole==='manager';
-function applyRoleUI(){isAdmin=appRole==='admin'||appRole==='manager';document.body.classList.toggle('is-admin',!!isAdmin);document.body.dataset.role=appRole;if(!isAdmin){profitUnlocked=false;historyUnlocked=false;receiptEditUnlocked=false;sessionStorage.removeItem('lounge_pos_profit_unlocked');sessionStorage.removeItem('lounge_pos_history_unlocked');sessionStorage.removeItem('lounge_pos_receipt_edit_unlocked');}}
+function applyRoleUI(){isAdmin=appRole==='admin'||appRole==='manager';document.body.classList.toggle('is-admin',!!isAdmin);document.body.dataset.role=appRole;if(appRole==='admin'){profitUnlocked=true;historyUnlocked=true;receiptEditUnlocked=true;sessionStorage.setItem('lounge_pos_profit_unlocked','1');sessionStorage.setItem('lounge_pos_history_unlocked','1');sessionStorage.setItem('lounge_pos_receipt_edit_unlocked','1');}else if(!isAdmin){profitUnlocked=false;historyUnlocked=false;receiptEditUnlocked=false;sessionStorage.removeItem('lounge_pos_profit_unlocked');sessionStorage.removeItem('lounge_pos_history_unlocked');sessionStorage.removeItem('lounge_pos_receipt_edit_unlocked');}}
 function requireAdmin(){if(isAdmin)return true;alert('この操作は管理者または店長のみ使用できます');return false;}
 function applyAppLock(){
   applyRoleUI();
@@ -1519,7 +1519,7 @@ function isCastHidden(c){return !!c.hidden}
 function activeCasts(){return (state.casts||[]).filter(c=>!isCastHidden(c))}
 function hiddenCasts(){return (state.casts||[]).filter(c=>isCastHidden(c))}
 function openScreen(id){if(['settings','backup','cloud'].includes(id)&&!requireAdmin())return;document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));let el=document.getElementById(id);if(el)el.classList.add('active');document.querySelectorAll('.tab,.mobile-bottom-nav button').forEach(x=>x.classList.toggle('active',x.dataset.screen===id));render()}
-function needPass(id){if(id==='settings'&&!requireAdmin())return;target=id;passInput.value='';openModal('passModal')}
+function needPass(id){if(id==='settings'&&!requireAdmin())return;if(appRole==='admin'){openScreen(id);return;}target=id;passInput.value='';openModal('passModal')}
 function unlock(){if(passInput.value===PASS){closeModal('passModal');openScreen(target)}else alert('違います')}
 function openModal(id){document.getElementById(id).classList.add('show')}function closeModal(id){document.getElementById(id).classList.remove('show')}
 function render(){save();nowLabel.textContent=`営業日 ${state.businessDate} / ${state.businessOpen?'営業中':'営業終了済'} / 現在 ${time(now)}`;if(window.roleLabel)roleLabel.textContent='権限：'+(appRole==='admin'?'管理者':appRole==='manager'?'店長':'閲覧者');renderTop();renderTables();renderCasts();renderCastManagement();renderManage();renderHistory();if(isAdmin)renderSettings();if(document.getElementById('backup')?.classList.contains('active'))renderBackupScreen();if(document.getElementById('cloud')?.classList.contains('active'))renderCloudSync();updateBackupStatus()}
@@ -2548,6 +2548,7 @@ function syncDerivedAfterReceiptEdit(d){
   });
 }
 function requireReceiptEditAccess(next){
+  if(appRole==='admin'){receiptEditUnlocked=true;sessionStorage.setItem('lounge_pos_receipt_edit_unlocked','1');next();return;}
   if(receiptEditUnlocked){next();return;}
   receiptEditPending=next;
   receiptEditPassInput.value='';
@@ -3058,6 +3059,7 @@ function manageSessionDaySum(d=state.businessDate){
 
 function pct(n){return isFinite(n)?(Math.round(n*10)/10).toFixed(1)+'%':'0.0%'}
 function openProfitLock(){if(!requireAdmin())return;
+  if(appRole==='admin'){profitUnlocked=true;sessionStorage.setItem('lounge_pos_profit_unlocked','1');renderProfitRates();profitArea.scrollIntoView({behavior:'smooth',block:'start'});return;}
   if(profitUnlocked){renderProfitRates();profitArea.scrollIntoView({behavior:'smooth',block:'start'});return;}
   profitPassInput.value='';
   profitPassError.textContent='';
@@ -3122,6 +3124,7 @@ function renderProfitRatesForDate(d){
 
 
 function openHistoryPanel(){if(!requireAdmin())return;
+  if(appRole==='admin'){historyUnlocked=true;sessionStorage.setItem('lounge_pos_history_unlocked','1');historyPanel.style.display = historyPanel.style.display === 'none' || !historyPanel.style.display ? 'block' : 'none';if(historyPanel.style.display !== 'none') renderBusinessHistory();return;}
   if(!historyUnlocked){
     historyPassInput.value='';
     historyPassError.textContent='';
@@ -3336,7 +3339,7 @@ function payrollDayRow(c,d,totals=null){let st=stats(c.id,d),l=getLog(c,d),absen
 function totalsRow(totals){return `<tr><th>合計</th><th></th><th></th><th></th><th></th><th class="right">${yen(totals.labor)}</th><th class="right">${yen(totals.dbBack)}</th><th class="right">${yen(totals.sbBack)}</th><th class="right">${yen(totals.wheelBack)}</th><th class="right">${yen(totals.champBack)}</th><th class="right">${yen(totals.jounaiBack)}</th><th class="right">${yen(totals.nomSet)}</th><th class="right">${yen(totals.nomSub)}</th><th class="right">${yen(totals.dohanBack)}</th><th class="right">${yen(totals.afterBack)}</th><th class="right">${yen(totals.back)}</th><th class="right">${yen(totals.pay)}</th></tr>`}
 function payrollWeekKey(base,castId){return `${castId}|${weekDates(base||state.businessDate).join('|')}`}
 function payrollLockRecord(c,base){state.payrollLocks=state.payrollLocks||{};return state.payrollLocks[payrollWeekKey(base,c.id)]||null}
-function require1704(action){let p=prompt('パスワードを入力してください'); if(p!==PROFIT_PASS){alert('パスワードが違います');return false;} if(typeof action==='function')action(); return true;}
+function require1704(action){if(appRole==='admin'){if(typeof action==='function')action();return true;}let p=prompt('パスワードを入力してください'); if(p!==PROFIT_PASS){alert('パスワードが違います');return false;} if(typeof action==='function')action(); return true;}
 function freezePayroll(castId,base){let c=state.casts.find(x=>x.id===castId); if(!c)return;let totals=initWeekTotals();weekDates(base).forEach(d=>{if(d)addDayToTotals(totals,c,d)});let bonus=weeklyBonusSummary(totals),gross=totals.pay+bonus.totalBonus,deduction=gross*((c.deductionRate||0)/100),net=gross-deduction;state.payrollLocks=state.payrollLocks||{};state.payrollLocks[payrollWeekKey(base,c.id)]={castId:c.id,castName:c.name,baseDate:base,weekDates:weekDates(base),fixedAt:new Date().toISOString(),totals:deepCopy(totals),bonus:deepCopy(bonus),gross,deduction,net,deductionRate:c.deductionRate||0};save();alert('給料を確定しました。解除・修正には1704が必要です。');makeWeek();}
 function unlockPayroll(castId,base){require1704(()=>{state.payrollLocks=state.payrollLocks||{};delete state.payrollLocks[payrollWeekKey(base,castId)];save();alert('給与凍結を解除しました。');makeWeek();});}
 function payrollSummaryCards(c,totals,label='週間',base=state.businessDate) {
@@ -4478,11 +4481,73 @@ function renderKagoWeeklyOverview(){
   if(inp&&!inp.value)inp.value=state.businessDate;
   const base=inp?.value||state.businessDate,ds=weekDates(base),range=document.getElementById('weeklyOverviewRange');
   if(range)range.innerHTML=`<span>${ds[0]} 〜 ${ds[6]}</span>`;
+
   const items=(state.casts||[]).filter(c=>!c.hidden).map(c=>({c,...kagoWeeklyPayForCast(c,base)})).filter(x=>x.days>0||x.gross!==0);
   const grand=items.reduce((a,x)=>a+x.net,0);
-  const rows=items.map(x=>`<tr><td>${esc(x.c.name)}</td><td class="right">${x.days}日</td></tr>`).join('')||'<tr><td colspan="2" class="muted">この週の出勤キャストはいません</td></tr>';
-  area.innerHTML=`<div class="summary">${cardStatText('出勤キャスト',items.length+'人')}${cardStat('支給額合計',grand)}</div><div class="card" style="margin-top:12px"><div class="row"><h3>${ds[0]}〜${ds[6]} 出勤キャスト一覧</h3></div><div class="scroll"><table><thead><tr><th>キャスト</th><th class="right">出勤日数</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  const payRows=items.map(x=>`<tr><td>${esc(x.c.name)}</td><td class="right">${x.days}日</td></tr>`).join('')||'<tr><td colspan="2" class="muted">この週の出勤キャストはいません</td></tr>';
+
+  const closeRows=ds.map(d=>{
+    const bd=dayRevenueBreakdown(d)||{};
+    const g=typeof guestStatsForDate==='function'?(guestStatsForDate(d,false)||{}):{};
+    const castCount=(state.casts||[]).filter(c=>{
+      if(typeof isCastHidden==='function'&&isCastHidden(c))return false;
+      const l=getLog(c,d)||{},inTime=String(l.in||'').trim();
+      return !!inTime&&inTime!=='00:00'&&inTime!=='休み'&&!l.absent&&l.status!=='休み'&&l.status!=='欠勤'&&workMin(c,d)>0;
+    }).length;
+    const hasData=Number(bd.total||0)!==0 || Number(bd.cash||0)!==0 || Number(bd.card||0)!==0 ||
+      Number(bd.unpaid||0)!==0 || castCount>0 ||
+      (state.manualClosingDaySheets||[]).some(x=>x.businessDate===d) ||
+      (state.manualClosingSheets||[]).some(x=>x.businessDate===d) ||
+      (state.businessSheets||[]).some(x=>x.businessDate===d) ||
+      (state.sales||[]).some(x=>x.businessDate===d);
+    return `<tr>
+      <td><b>${dateWithWeekday(d)}</b></td>
+      <td>${hasData?'<span style="font-weight:900;color:#166534">データあり</span>':'<span class="muted">データなし</span>'}</td>
+      <td class="right">${yen(Number(bd.total)||0)}</td>
+      <td class="right">${yen(Number(bd.cash)||0)}</td>
+      <td class="right">${yen(Number(bd.card)||0)}</td>
+      <td class="right">${yen(Number(bd.unpaid)||0)}</td>
+      <td class="right">${Number(g.people)||0}人</td>
+      <td class="right">${castCount}人</td>
+      <td>
+        <div class="row" style="justify-content:flex-start;gap:4px">
+          <button class="btn blue small" onclick="viewWeeklyClosingDay('${d}')">表示</button>
+          <button class="btn out small" onclick="printWeeklyClosingDay('${d}')">印刷</button>
+          <button class="btn out small" onclick="saveWeeklyClosingDay('${d}',this)">保存</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  area.innerHTML=`
+    <div class="section">週間給与</div>
+    <div class="summary">${cardStatText('出勤キャスト',items.length+'人')}${cardStat('支給額合計',grand)}</div>
+    <div class="card" style="margin-top:12px">
+      <div class="row"><h3>${ds[0]}〜${ds[6]} 出勤キャスト一覧</h3></div>
+      <div class="scroll"><table><thead><tr><th>キャスト</th><th class="right">出勤日数</th></tr></thead><tbody>${payRows}</tbody></table></div>
+    </div>
+
+    <div class="section" id="weeklyClosingOverviewAnchor" style="margin-top:18px">締め表一覧</div>
+    <div class="card" style="margin-top:12px">
+      <div class="row">
+        <div>
+          <h3>${ds[0]}〜${ds[6]} 締め表一覧</h3>
+          <p class="muted" style="margin:4px 0 0">基準日を変更すると、その日を含む月曜〜日曜の7日分を表示します。</p>
+        </div>
+        <div class="row" style="justify-content:flex-end">
+          <button class="btn blue" onclick="printWeeklyClosingBatch()">7日分一括印刷</button>
+          <button class="btn ok" onclick="saveWeeklyClosingBatch(this)">7日分一括保存</button>
+        </div>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>営業日</th><th>状態</th><th class="right">総売上</th><th class="right">現金</th><th class="right">カード</th><th class="right">未収</th><th class="right">入客</th><th class="right">出勤</th><th>操作</th></tr></thead>
+          <tbody>${closeRows}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
+
 function openGuestRatePanel(){
   const g=guestStatsForDate(state.businessDate,true),total=Math.max(0,g.people),maleRate=total?Math.round(g.male/total*100):0,femaleRate=total?100-maleRate:0;
   selectTitle.textContent='本日の入客率';
@@ -4999,6 +5064,7 @@ setInterval(()=>{now=new Date();render()},30000);applyAppLock();initAllTimePicke
       @media print{html,body,#a4Viewport{overflow:hidden!important}#a4Sheet{break-after:avoid!important;page-break-after:avoid!important}}
     `;
   }
+  window.__kagoA4PrintCss = printCss;
 
   window.printElement=function(id){
     if(window.__kagoA4PrintLock){console.warn('印刷処理中です');return;}
@@ -5072,6 +5138,7 @@ setInterval(()=>{now=new Date();render()},30000);applyAppLock();initAllTimePicke
     const sales=Number(bd.total)||0,profit=sales-totals.labor-totals.back;
     return `<div class="card printable-sheet" data-report-type="closing"><div class="row"><h2>締め票 ${esc(d)}</h2></div><div class="grid4"><div class="info"><b>総売上</b><span>${yen(sales)}</span></div><div class="info"><b>現金売上</b><span>${yen(bd.cash)}</span></div><div class="info"><b>カード売上</b><span>${yen(bd.card)}</span></div><div class="info"><b>未収</b><span>${yen(bd.unpaid)}</span></div></div><div class="summary">${cardStatText('入客人数',(Number(g.people)||0)+'人')}${cardStatText('入客組数',(Number(g.groups)||0)+'組')}${cardStatText('男性',(Number(g.male)||0)+'人')}${cardStatText('女性',(Number(g.female)||0)+'人')}</div><div class="section">カード会計（売上別枠）</div><div class="scroll"><table><thead><tr><th>卓</th><th class="right">売上分</th><th class="right">カード加算</th><th class="right">カード請求額</th></tr></thead><tbody>${cardRows}<tr><th>合計</th><th class="right">${yen(cd.base)}</th><th class="right">${yen(cd.fee)}</th><th class="right">${yen(cd.total)}</th></tr></tbody></table></div><div class="section">キャスト別給与</div><div class="scroll"><table><thead><tr><th>キャスト</th><th>出勤</th><th>退勤</th><th>勤務時間</th><th>時給</th><th>時間給</th><th>DB</th><th>SB</th><th>テキカンB</th><th>シャンパンB</th><th>呼びB</th><th>徴収</th><th>バック合計</th><th>給与</th></tr></thead><tbody>${rows}</tbody></table></div><div class="section">バック項目別合計</div><div class="summary">${cardStat('DB',totals.db)}${cardStat('SB',totals.sb)}${cardStat('テキカン',totals.wheel)}${cardStat('シャンパン',totals.champ)}${cardStat('呼び',totals.call)}${cardStat('徴収',totals.collection)}${cardStat('バック総額',totals.back)}</div><div class="section">最終集計</div><div class="summary">${cardStat('売上',sales)}${cardStat('人件費',totals.labor)}${cardStat('バック',totals.back)}${cardStat('給与合計',totals.pay)}${cardStat('純利益',profit)}${cardStat('カード加算',cd.fee)}</div></div>`;
   }
+  window.__buildKagoClosingReportHtml = buildClosingReportHtml;
 
   window.printManualClosingDate=function(){
     const d=document.getElementById('manualCloseDate')?.value||state.businessDate;
@@ -5104,6 +5171,210 @@ setInterval(()=>{now=new Date();render()},30000);applyAppLock();initAllTimePicke
       return r;
     };
   }
+
+  // ===== 鹿児島：月曜〜日曜 締め表一覧 / 一括印刷 / 一括保存 =====
+  function weeklyClosingDates(){
+    const base=document.getElementById('weeklyOverviewDate')?.value||state.businessDate;
+    return weekDates(base);
+  }
+
+  window.openWeeklyClosingOverview=function(){
+    openScreen('weeklyOverview');
+    setTimeout(()=>{
+      renderKagoWeeklyOverview();
+      document.getElementById('weeklyClosingOverviewAnchor')?.scrollIntoView({behavior:'smooth',block:'start'});
+    },30);
+  };
+
+  window.viewWeeklyClosingDay=function(d){
+    if(typeof window.__buildKagoClosingReportHtml!=='function')return alert('締め表表示機能を読み込めませんでした。');
+    selectTitle.textContent='締め表 '+d;
+    selectBody.innerHTML=`<div id="weeklyClosingModalReport">${window.__buildKagoClosingReportHtml(d)}</div>`;
+    openModal('selectModal');
+  };
+
+  function hiddenClosingHost(d){
+    const old=document.getElementById('weeklyClosingTempHost');if(old)old.remove();
+    const host=document.createElement('div');
+    host.id='weeklyClosingTempHost';
+    host.dataset.reportType='closing';
+    host.style.cssText='position:fixed;left:-20000px;top:0;width:1120px;background:#fff;z-index:-1;';
+    host.innerHTML=window.__buildKagoClosingReportHtml(d);
+    document.body.appendChild(host);
+    return host;
+  }
+
+  window.printWeeklyClosingDay=function(d){
+    if(typeof window.__buildKagoClosingReportHtml!=='function')return alert('締め表印刷機能を読み込めませんでした。');
+    const host=hiddenClosingHost(d);
+    try{window.printElement(host.id)}finally{setTimeout(()=>{try{host.remove()}catch(e){}},1200)}
+  };
+
+  window.saveWeeklyClosingDay=async function(d,button){
+    if(typeof window.__buildKagoClosingReportHtml!=='function')return alert('締め表保存機能を読み込めませんでした。');
+    const host=hiddenClosingHost(d);
+    try{await window.saveSheetScreenshot(host.id,`鹿児島_締め表_${d}`,button)}
+    finally{setTimeout(()=>{try{host.remove()}catch(e){}},300)}
+  };
+
+  window.printWeeklyClosingBatch=function(){
+    if(window.__kagoWeeklyClosingPrintLock)return;
+    if(typeof window.__buildKagoClosingReportHtml!=='function'||typeof window.__kagoA4PrintCss!=='function'){
+      alert('一括印刷機能を読み込めませんでした。');return;
+    }
+    const ds=weeklyClosingDates();
+    window.__kagoWeeklyClosingPrintLock=true;
+    const old=document.getElementById('kagoWeeklyClosingPrintFrame');if(old)old.remove();
+
+    const iframe=document.createElement('iframe');
+    iframe.id='kagoWeeklyClosingPrintFrame';
+    iframe.setAttribute('aria-hidden','true');
+    iframe.style.cssText='position:fixed;left:-20000px;top:0;width:1200px;height:1200px;border:0;opacity:0;pointer-events:none;';
+    document.body.appendChild(iframe);
+
+    const doc=iframe.contentDocument||iframe.contentWindow.document;
+    let css=window.__kagoA4PrintCss('closing',297,210,5)
+      .replaceAll('#a4Viewport','.a4Viewport')
+      .replaceAll('#a4Sheet','.a4Sheet');
+    css+=`
+      body{width:auto!important;min-height:auto!important}
+      .a4Viewport{break-after:page!important;page-break-after:always!important;position:relative!important}
+      .a4Viewport:last-child{break-after:auto!important;page-break-after:auto!important}
+      @media print{.a4Viewport{break-after:page!important;page-break-after:always!important}.a4Viewport:last-child{break-after:auto!important;page-break-after:auto!important}}
+    `;
+
+    doc.open();
+    doc.write(`<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>鹿児島 週間締め表 ${ds[0]}-${ds[6]}</title><style>${css}</style></head><body>${ds.map((d,i)=>`<div class="a4Viewport"><div class="a4Sheet" data-date="${d}">${window.__buildKagoClosingReportHtml(d)}</div></div>`).join('')}</body></html>`);
+    doc.close();
+
+    let cleaned=false;
+    const cleanup=()=>{if(cleaned)return;cleaned=true;setTimeout(()=>{try{iframe.remove()}catch(e){}window.__kagoWeeklyClosingPrintLock=false;},800)};
+    const run=()=>{
+      try{
+        const viewports=[...doc.querySelectorAll('.a4Viewport')];
+        viewports.forEach(vp=>{
+          const sheet=vp.querySelector('.a4Sheet');if(!sheet)return;
+          sheet.style.transform='none';sheet.style.left='0px';sheet.style.top='0px';
+          const maxW=vp.clientWidth||1085;
+          const maxH=vp.clientHeight||756;
+          const naturalW=Math.max(sheet.scrollWidth,sheet.getBoundingClientRect().width,1);
+          const naturalH=Math.max(sheet.scrollHeight,sheet.getBoundingClientRect().height,1);
+          let scale=Math.min(1,maxW/naturalW,maxH/naturalH);
+          if(!Number.isFinite(scale)||scale<=0)scale=1;
+          scale=Math.max(0.12,Math.min(1,scale*0.985));
+          sheet.style.transform=`scale(${scale})`;
+          sheet.style.left=Math.max(0,(maxW-naturalW*scale)/2)+'px';
+        });
+        const w=iframe.contentWindow;
+        let printed=false;
+        const doPrint=()=>{if(printed)return;printed=true;try{w.onafterprint=cleanup;w.focus();w.print();setTimeout(cleanup,6000)}catch(e){console.error(e);cleanup();alert('週間締め表の一括印刷に失敗しました。')}};
+        setTimeout(doPrint,100);
+      }catch(e){console.error(e);cleanup();alert('週間締め表の印刷調整に失敗しました。')}
+    };
+    const ready=doc.fonts&&doc.fonts.ready?doc.fonts.ready:Promise.resolve();
+    ready.then(()=>requestAnimationFrame(()=>requestAnimationFrame(run))).catch(run);
+  };
+
+  function crc32(bytes){
+    let table=window.__kagoZipCrcTable;
+    if(!table){
+      table=new Uint32Array(256);
+      for(let n=0;n<256;n++){
+        let c=n;
+        for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+        table[n]=c>>>0;
+      }
+      window.__kagoZipCrcTable=table;
+    }
+    let c=0xFFFFFFFF;
+    for(let i=0;i<bytes.length;i++)c=table[(c^bytes[i])&0xFF]^(c>>>8);
+    return (c^0xFFFFFFFF)>>>0;
+  }
+
+  function dosDateTime(date=new Date()){
+    const year=Math.max(1980,date.getFullYear());
+    const time=((date.getHours()&31)<<11)|((date.getMinutes()&63)<<5)|((Math.floor(date.getSeconds()/2))&31);
+    const day=((year-1980)<<9)|((date.getMonth()+1)<<5)|date.getDate();
+    return {time,day};
+  }
+
+  function makeStoredZip(entries){
+    const enc=new TextEncoder(),locals=[],centrals=[];
+    let offset=0;
+    const now=dosDateTime(new Date());
+    const u16=(v)=>[v&255,(v>>>8)&255],u32=(v)=>[v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255];
+    entries.forEach(e=>{
+      const name=enc.encode(e.name),data=e.data,crc=crc32(data),flags=0x0800;
+      const local=new Uint8Array([
+        ...u32(0x04034b50),...u16(20),...u16(flags),...u16(0),...u16(now.time),...u16(now.day),
+        ...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...name
+      ]);
+      locals.push(local,data);
+      const central=new Uint8Array([
+        ...u32(0x02014b50),...u16(20),...u16(20),...u16(flags),...u16(0),...u16(now.time),...u16(now.day),
+        ...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),
+        ...u32(0),...u32(offset),...name
+      ]);
+      centrals.push(central);
+      offset+=local.length+data.length;
+    });
+    const centralSize=centrals.reduce((a,x)=>a+x.length,0),centralOffset=offset;
+    const end=new Uint8Array([
+      ...u32(0x06054b50),...u16(0),...u16(0),...u16(entries.length),...u16(entries.length),
+      ...u32(centralSize),...u32(centralOffset),...u16(0)
+    ]);
+    return new Blob([...locals,...centrals,end],{type:'application/zip'});
+  }
+
+  async function closingCanvasForDate(d){
+    if(typeof html2canvas!=='function')throw new Error('html2canvas unavailable');
+    const stage=document.createElement('div');
+    stage.style.cssText='position:fixed;left:-20000px;top:0;width:1120px;padding:8px;background:#fff;margin:0;z-index:-1;box-sizing:border-box;';
+    stage.innerHTML=window.__buildKagoClosingReportHtml(d);
+    stage.querySelectorAll('.no-print,button').forEach(x=>x.remove());
+    stage.querySelectorAll('.scroll').forEach(x=>{x.style.overflow='visible';x.style.maxHeight='none';});
+    document.body.appendChild(stage);
+    try{
+      const raw=await html2canvas(stage,{backgroundColor:'#ffffff',scale:2,useCORS:true,logging:false,width:stage.scrollWidth,height:stage.scrollHeight,windowWidth:stage.scrollWidth,windowHeight:stage.scrollHeight});
+      const out=document.createElement('canvas');out.width=1684;out.height=1191;
+      const ctx=out.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,out.width,out.height);
+      const margin=12,maxW=out.width-margin*2,maxH=out.height-margin*2,sc=Math.min(maxW/raw.width,maxH/raw.height);
+      const w=raw.width*sc,h=raw.height*sc;ctx.drawImage(raw,(out.width-w)/2,(out.height-h)/2,w,h);
+      return out;
+    }finally{stage.remove()}
+  }
+
+  window.saveWeeklyClosingBatch=async function(button){
+    if(window.__kagoWeeklyClosingSaveLock)return;
+    if(typeof window.__buildKagoClosingReportHtml!=='function')return alert('一括保存機能を読み込めませんでした。');
+    if(typeof html2canvas!=='function')return alert('画像保存機能の読み込みに失敗しました。インターネット接続を確認してください。');
+    const ds=weeklyClosingDates(),old=button?.textContent;
+    window.__kagoWeeklyClosingSaveLock=true;
+    if(button){button.disabled=true;button.textContent='準備中...'}
+    try{
+      const entries=[];
+      for(let i=0;i<ds.length;i++){
+        if(button)button.textContent=`保存作成中 ${i+1}/7`;
+        const canvas=await closingCanvasForDate(ds[i]);
+        const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('PNG作成失敗')),'image/png'));
+        entries.push({name:`鹿児島_締め表_${ds[i]}.png`,data:new Uint8Array(await blob.arrayBuffer())});
+      }
+      if(button)button.textContent='ZIP作成中...';
+      const zip=makeStoredZip(entries);
+      const a=document.createElement('a');
+      a.download=`鹿児島_週間締め表_${ds[0]}_${ds[6]}.zip`;
+      a.href=URL.createObjectURL(zip);
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+    }catch(e){
+      console.error(e);
+      alert('週間締め表の一括保存に失敗しました。');
+    }finally{
+      window.__kagoWeeklyClosingSaveLock=false;
+      if(button){button.disabled=false;button.textContent=old||'7日分一括保存'}
+    }
+  };
+
 })();
 </script>
 
