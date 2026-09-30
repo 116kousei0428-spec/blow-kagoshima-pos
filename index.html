@@ -878,6 +878,8 @@ body.print-one #weeklyPrintArea .weekly-receipt-seal{width:23px!important;height
 
 const KEY='blow_kagoshima_pos_v1_full', VIEWER_PASS='0120', MANAGER_PASS='0428', ADMIN_PASS='2005170428', PASS=VIEWER_PASS, PROFIT_PASS='1704', HISTORY_PASS='1728', TABLES=['A1','A2','A3','A4','A5','A6','A7','C1','C2','C3','C4','C5','C6','C7','B1'];
 const CLOUD_KEY='lounge_pos_cloud_sync_beta43';
+const FIXED_CLOUD_DB_URL='https://blow2nd-73e80-default-rtdb.asia-southeast1.firebasedatabase.app';
+const FIXED_CLOUD_PATH='blow2nd/main';
 const STATE_DB_NAME='BlowKagoshimaPOSStateDB', STATE_DB_STORE='state', STATE_DB_KEY='main';
 const BASIC_SET_MIN=60, HALF_EXTEND_MIN=30, FULL_EXTEND_MIN=60;
 const JOUNAI_BACK=500;
@@ -1167,7 +1169,13 @@ function save(){
 
 
 function getCloudConfig(){
-  try{return JSON.parse(localStorage.getItem(CLOUD_KEY)||'{}')||{}}catch(e){return {}}
+  let saved={};
+  try{saved=JSON.parse(localStorage.getItem(CLOUD_KEY)||'{}')||{}}catch(e){saved={}}
+  let device=String(saved.device||'').trim();
+  if(!device){device='kago-'+Math.random().toString(36).slice(2,10);}
+  const cfg={...saved,dbUrl:FIXED_CLOUD_DB_URL,path:FIXED_CLOUD_PATH,device,autoSync:true};
+  try{localStorage.setItem(CLOUD_KEY,JSON.stringify(cfg))}catch(e){}
+  return cfg;
 }
 
 function setCloudStatus(msg,isError=false){
@@ -1180,7 +1188,7 @@ function normalizeCloudUrl(url){
   if(second>0)u=u.slice(0,second);
   return u.replace(/\/+$/,'');
 }
-function normalizeCloudPath(path){return String(path||'blow2nd/main').trim().replace(/^\/+|\/+$/g,'').replace(/[^a-zA-Z0-9_\-\/]/g,'_')}
+function normalizeCloudPath(path){return String(path||FIXED_CLOUD_PATH).trim().replace(/^\/+|\/+$/g,'').replace(/[^a-zA-Z0-9_\-\/]/g,'_')}
 function buildCloudEndpoint(cfg){
   const base=normalizeCloudUrl(cfg.dbUrl);
   const path=normalizeCloudPath(cfg.path);
@@ -1192,17 +1200,17 @@ function buildCloudEndpoint(cfg){
 }
 function renderCloudSync(){
   const cfg=getCloudConfig();
-  const db=document.getElementById('cloudDbUrl'); if(db)db.value=cfg.dbUrl||'';
-  const path=document.getElementById('cloudPath'); if(path)path.value=cfg.path||'blow2nd/main';
+  const db=document.getElementById('cloudDbUrl'); if(db){db.value=FIXED_CLOUD_DB_URL;db.readOnly=true;}
+  const path=document.getElementById('cloudPath'); if(path){path.value=FIXED_CLOUD_PATH;path.readOnly=true;}
   const auth=document.getElementById('cloudAuth'); if(auth)auth.value=cfg.auth||'';
-  const dev=document.getElementById('cloudDevice'); if(dev)dev.value=cfg.device||('device-'+Math.random().toString(36).slice(2,8));
+  const dev=document.getElementById('cloudDevice'); if(dev)dev.value=cfg.device||('kago-'+Math.random().toString(36).slice(2,8));
   const last=cfg.lastSyncAt?'\n最終同期: '+new Date(cfg.lastSyncAt).toLocaleString()+' / '+(cfg.lastAction||''):'';
   setCloudStatus((cfg.dbUrl?'同期設定あり':'未設定')+last);
 }
 function saveCloudConfig(){
   const cfg={
-    dbUrl:normalizeCloudUrl(document.getElementById('cloudDbUrl')?.value||''),
-    path:normalizeCloudPath(document.getElementById('cloudPath')?.value||'blow2nd/main'),
+    dbUrl:FIXED_CLOUD_DB_URL,
+    path:FIXED_CLOUD_PATH,
     auth:document.getElementById('cloudAuth')?.value||'',
     device:document.getElementById('cloudDevice')?.value||'unknown-device'
   };
@@ -4408,26 +4416,26 @@ if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.s
   window.renderMaintenanceStatus=function(){const el=document.getElementById('maintenanceStatus');if(el)el.textContent=`ブラウザ保存使用量（概算）：${bytesLabel(storageUsage())} / 表示用バックアップ履歴：${(state.backups||[]).length}件 / 容量超過時はIndexedDBへ自動退避`;};
   window.runSafeMaintenance=function(){if(!requireAdmin())return;if(!confirm('安全メンテナンスを実行します。\n\n削除：表示用バックアップ履歴・期限切れ修正コード・古い修正ログ（500件超）\n保持：過去会計・給与・締め票・キャスト・Firebase設定\n\n実行しますか？'))return;const before=storageUsage();state.backups=[];state.receiptEditAudit=(state.receiptEditAudit||[]).slice(0,500);if(state.receiptEditOtp&&Date.now()>Number(state.receiptEditOtp.expiresAt||0))state.receiptEditOtp=null;save();const after=storageUsage();renderMaintenanceStatus();alert(`メンテナンス完了。\n整理前：${bytesLabel(before)}\n整理後：${bytesLabel(after)}\n削減：${bytesLabel(Math.max(0,before-after))}`);};
 
-  let autoSyncTimer=null,autoSyncPollTimer=null,autoSyncBusy=false,applyingRemoteState=false,lastCloudUpdatedAt='';
+  let autoSyncTimer=null,autoSyncPollTimer=null,autoSyncBusy=false,applyingRemoteState=false,lastCloudUpdatedAt='',cloudHydrated=false;
   function syncSig(st){try{return JSON.stringify({businessDate:st.businessDate,businessOpen:st.businessOpen,sales:(st.sales||[]).length,tables:st.tables,casts:st.casts,manualClosingSheets:st.manualClosingSheets,manualClosingDaySheets:st.manualClosingDaySheets,manualClosingDeleted:st.manualClosingDeleted,expenses:st.expenses,purchaseFundOpening:st.purchaseFundOpening,purchaseFundTopups:st.purchaseFundTopups,cashFlows:st.cashFlows,unpaids:st.unpaids,collections:st.collections,defaultBackSettings:st.defaultBackSettings,payrollLocks:st.payrollLocks,monthlyFinance:st.monthlyFinance})}catch{return String(Date.now())}}
   let lastLocalSig=syncSig(state);
-  function isAutoSyncEnabled(){return getCloudConfig().autoSync!==false && !!getCloudConfig().dbUrl}
+  function isAutoSyncEnabled(){return true}
   window.updateAutoSyncButton=function(){const b=document.getElementById('autoSyncBtn');if(b)b.textContent=isAutoSyncEnabled()?'自動同期 ON':'自動同期をON'};
-  async function autoCloudSave(){if(applyingRemoteState||autoSyncBusy||!isAutoSyncEnabled())return;autoSyncBusy=true;try{const cfg=getCloudConfig();const payload=cloudStatePayload(cfg);const res=await fetch(buildCloudEndpoint(cfg),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok)throw new Error('HTTP '+res.status);lastCloudUpdatedAt=payload.updatedAt;localStorage.setItem(CLOUD_KEY,JSON.stringify({...cfg,lastSyncAt:Date.now(),lastAction:'auto-save',autoSync:true}));setCloudStatus('自動同期 ON\n最終保存: '+new Date().toLocaleString());}catch(e){setCloudStatus('自動同期保存エラー: '+(e.message||e),true)}finally{autoSyncBusy=false}}
+  async function autoCloudSave(){if(applyingRemoteState||autoSyncBusy||!isAutoSyncEnabled()||!cloudHydrated)return;autoSyncBusy=true;try{const cfg=getCloudConfig();const payload=cloudStatePayload(cfg);const res=await fetch(buildCloudEndpoint(cfg),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok)throw new Error('HTTP '+res.status);lastCloudUpdatedAt=payload.updatedAt;localStorage.setItem(CLOUD_KEY,JSON.stringify({...cfg,lastSyncAt:Date.now(),lastAction:'auto-save',autoSync:true}));setCloudStatus('自動同期 ON\n最終保存: '+new Date().toLocaleString());}catch(e){setCloudStatus('自動同期保存エラー: '+(e.message||e),true)}finally{autoSyncBusy=false}}
   function mergeById(local,remote,keyFn){const m=new Map();[...(remote||[]),...(local||[])].forEach(x=>{const k=keyFn(x),prev=m.get(k);if(!prev){m.set(k,x);return;}const pt=Date.parse(prev.updatedAt||prev.createdAt||0)||0,xt=Date.parse(x.updatedAt||x.createdAt||0)||0;if(xt>=pt)m.set(k,x)});return [...m.values()]}
   function mergeClosingTombstones(local,remote){const out={};[remote,local].forEach(src=>{if(!src||typeof src!=='object'||Array.isArray(src))return;Object.entries(src).forEach(([k,v])=>{const cur=Date.parse(out[k]||0)||0,nt=Date.parse(v||0)||0;if(nt>=cur)out[k]=v;});});return out;}
   function closingRowTime(x){return Date.parse(x?.updatedAt||x?.createdAt||0)||0}
   function closingDeletedAt(tombs,row){return Math.max(Date.parse(tombs?.[row?.id]||0)||0,Date.parse(tombs?.[`cast:${row?.businessDate}:${row?.castId}`]||0)||0)}
   function removeCastRefsForSync(t,cid){if(!t)return;const id=String(cid);['callCasts','nominations','dohan','jounai','after'].forEach(k=>{if(Array.isArray(t[k]))t[k]=t[k].filter(v=>String(v)!==id)});if(t.jounaiCounts&&typeof t.jounaiCounts==='object'&&!Array.isArray(t.jounaiCounts)){Object.keys(t.jounaiCounts).forEach(k=>{if(String(k)===id)delete t.jounaiCounts[k]})}(t.items||[]).forEach(i=>{if(String(i.castId||'')===id)i.castId='';if(Array.isArray(i.drinkers))i.drinkers=i.drinkers.filter(v=>String(v)!==id)});}
   function applyClosingTombstones(st){const tombs=(st.manualClosingDeleted&&typeof st.manualClosingDeleted==='object'&&!Array.isArray(st.manualClosingDeleted))?st.manualClosingDeleted:{};st.manualClosingSheets=(st.manualClosingSheets||[]).filter(r=>{const del=closingDeletedAt(tombs,r),rt=closingRowTime(r);return !(del&&del>=rt)});const newest=new Map();(st.manualClosingSheets||[]).forEach(r=>{const k=`${r.businessDate}|${r.castId}`,prev=newest.get(k);if(!prev||closingRowTime(r)>=closingRowTime(prev))newest.set(k,r);const idDel=Date.parse(tombs[r.id]||0)||0;if(idDel&&closingRowTime(r)>idDel)delete tombs[r.id]});Object.entries({...tombs}).forEach(([k,v])=>{if(!k.startsWith('cast:'))return;const parts=k.split(':'),d=parts[1],cid=parts.slice(2).join(':'),delAt=Date.parse(v||0)||0,live=newest.get(`${d}|${cid}`);if(live&&closingRowTime(live)>delAt){delete tombs[k];return;}const c=(st.casts||[]).find(x=>String(x.id)===String(cid));if(c?.logs?.[d]){const logAt=Date.parse(c.logs[d]._updatedAt||c.logs[d].manualClosingUpdatedAt||0)||0;if(!logAt||logAt<=delAt)delete c.logs[d]}(st.businessSheets||[]).forEach(sh=>{if(sh.businessDate===d&&Array.isArray(sh.attendance))sh.attendance=sh.attendance.filter(a=>String(a.castId)!==String(cid))});st.collections=(st.collections||[]).filter(x=>!(x.businessDate===d&&String(x.castId)===String(cid)));(st.sales||[]).filter(x=>x.businessDate===d).forEach(x=>removeCastRefsForSync(x.table,cid));if(st.businessDate===d)(st.tables||[]).forEach(t=>removeCastRefsForSync(t,cid));});st.manualClosingDeleted=tombs;return st;}
-  async function pollCloudChanges(){if(autoSyncBusy||applyingRemoteState||!isAutoSyncEnabled()||document.hidden)return;autoSyncBusy=true;try{const cfg=getCloudConfig();const res=await fetch(buildCloudEndpoint(cfg),{method:'GET'});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();const remote=data&&(data.state||data.data);if(!remote||!data.updatedAt||data.updatedAt===lastCloudUpdatedAt)return;const remoteTime=Date.parse(data.updatedAt)||0;if(remoteTime<=0)return;applyingRemoteState=true;const localManual=state.manualClosingSheets||[],localDays=state.manualClosingDaySheets||[],localDeleted=state.manualClosingDeleted||{};let next=normalizeRestoreDataForLocalStorage(remote);next.manualClosingDeleted=mergeClosingTombstones(localDeleted,next.manualClosingDeleted);next.manualClosingSheets=mergeById(localManual,next.manualClosingSheets,x=>x.id||`${x.businessDate}|${x.castId}|${x.createdAt||''}`);next.manualClosingDaySheets=mergeById(localDays,next.manualClosingDaySheets,x=>x.businessDate);next=applyClosingTombstones(next);state=next;repairActiveTableTimes();repairAllExtensionDurations();save();lastCloudUpdatedAt=data.updatedAt;lastLocalSig=syncSig(state);render();setCloudStatus('自動同期 ON\n最終読込: '+new Date().toLocaleString()+' / '+(data.device||'-'));}catch(e){setCloudStatus('自動同期読込エラー: '+(e.message||e),true)}finally{applyingRemoteState=false;autoSyncBusy=false}}
+  async function pollCloudChanges(){if(autoSyncBusy||applyingRemoteState||!isAutoSyncEnabled()||document.hidden)return;autoSyncBusy=true;try{const cfg=getCloudConfig();const res=await fetch(buildCloudEndpoint(cfg),{method:'GET',cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();const remote=data&&(data.state||data.data);if(!remote){cloudHydrated=false;setCloudStatus('Firebase側に鹿児島の母体データがありません。自動保存は停止中です。',true);return;}cloudHydrated=true;if(!data.updatedAt||data.updatedAt===lastCloudUpdatedAt)return;const remoteTime=Date.parse(data.updatedAt)||0;if(remoteTime<=0)return;applyingRemoteState=true;const localManual=state.manualClosingSheets||[],localDays=state.manualClosingDaySheets||[],localDeleted=state.manualClosingDeleted||{};let next=normalizeRestoreDataForLocalStorage(remote);next.manualClosingDeleted=mergeClosingTombstones(localDeleted,next.manualClosingDeleted);next.manualClosingSheets=mergeById(localManual,next.manualClosingSheets,x=>x.id||`${x.businessDate}|${x.castId}|${x.createdAt||''}`);next.manualClosingDaySheets=mergeById(localDays,next.manualClosingDaySheets,x=>x.businessDate);next=applyClosingTombstones(next);state=next;repairActiveTableTimes();repairAllExtensionDurations();save();lastCloudUpdatedAt=data.updatedAt;lastLocalSig=syncSig(state);render();setCloudStatus('自動同期 ON\n最終読込: '+new Date().toLocaleString()+' / '+(data.device||'-'));}catch(e){setCloudStatus('自動同期読込エラー: '+(e.message||e),true)}finally{applyingRemoteState=false;autoSyncBusy=false}}
   const _save=window.save; window.save=function(){const r=_save.apply(this,arguments);if(!applyingRemoteState&&isAutoSyncEnabled()){const sig=syncSig(state);if(sig!==lastLocalSig){lastLocalSig=sig;clearTimeout(autoSyncTimer);autoSyncTimer=setTimeout(autoCloudSave,800)}}return r};
   const _saveCloudConfig=window.saveCloudConfig; window.saveCloudConfig=function(){const cfg=_saveCloudConfig.apply(this,arguments);const merged={...getCloudConfig(),...cfg,autoSync:getCloudConfig().autoSync!==false};localStorage.setItem(CLOUD_KEY,JSON.stringify(merged));updateAutoSyncButton();return merged};
-  window.toggleAutoSync=function(){const cfg=getCloudConfig();cfg.autoSync=!isAutoSyncEnabled(); if(!cfg.dbUrl)cfg.autoSync=true;localStorage.setItem(CLOUD_KEY,JSON.stringify(cfg));updateAutoSyncButton();startAutoSync();};
-  window.startAutoSync=function(){clearInterval(autoSyncPollTimer);clearTimeout(autoSyncTimer);updateAutoSyncButton();if(!isAutoSyncEnabled())return;autoSyncPollTimer=setInterval(pollCloudChanges,2500);setTimeout(pollCloudChanges,400);};
+  window.toggleAutoSync=function(){const cfg=getCloudConfig();cfg.autoSync=true;localStorage.setItem(CLOUD_KEY,JSON.stringify(cfg));updateAutoSyncButton();startAutoSync();};
+  window.startAutoSync=function(){clearInterval(autoSyncPollTimer);clearTimeout(autoSyncTimer);cloudHydrated=false;updateAutoSyncButton();setCloudStatus('鹿児島データをFirebaseから同期中…');autoSyncPollTimer=setInterval(pollCloudChanges,2500);setTimeout(pollCloudChanges,50);};
   const _renderCloud=window.renderCloudSync;window.renderCloudSync=function(){const r=_renderCloud.apply(this,arguments);updateAutoSyncButton();return r};
   const _render=window.render;window.render=function(){const r=_render.apply(this,arguments);setTimeout(()=>{if(document.getElementById('settings')?.classList.contains('active'))renderMaintenanceStatus();},0);return r};
-  setTimeout(startAutoSync,800);
+  setTimeout(startAutoSync,100);
 })();
 
 /* v2.9 鹿児島：週間/帳票の閲覧者運用、小口現金の独立管理、男女別入客集計 */
