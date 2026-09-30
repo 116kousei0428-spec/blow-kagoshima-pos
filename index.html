@@ -570,6 +570,7 @@ body.print-one #weeklyPrintArea .weekly-receipt-seal{width:23px!important;height
     <button class="tab" data-screen="casts" onclick="openScreen('casts')">キャスト</button>
     <button class="tab" data-screen="manage" onclick="openScreen('manage')">管理</button>
     <button class="tab" data-screen="weeklyOverview" onclick="openScreen('weeklyOverview')">週間</button>
+    <button class="tab admin-only" data-screen="monthlyFinance" onclick="openScreen('monthlyFinance')">月間収支</button>
     <button class="tab" data-screen="backup" onclick="openScreen('backup')">バックアップ</button>
     <button class="tab" data-screen="cloud" onclick="openScreen('cloud')">同期</button>
     <button class="tab admin-only" data-screen="settings" onclick="openScreen('settings')">設定</button>
@@ -580,6 +581,7 @@ body.print-one #weeklyPrintArea .weekly-receipt-seal{width:23px!important;height
     <button data-screen="casts" onclick="openScreen('casts')"><span class="ico">👧</span>キャスト</button>
     <button data-screen="manage" onclick="openScreen('manage')"><span class="ico">💴</span>管理</button>
     <button data-screen="weeklyOverview" onclick="openScreen('weeklyOverview')"><span class="ico">📅</span>週間</button>
+    <button class="admin-only" data-screen="monthlyFinance" onclick="openScreen('monthlyFinance')"><span class="ico">📊</span>月間</button>
     <button data-screen="backup" onclick="openScreen('backup')"><span class="ico">💾</span>保存</button>
     <button data-screen="cloud" onclick="openScreen('cloud')"><span class="ico">☁️</span>同期</button>
     <button class="admin-only" data-screen="settings" onclick="openScreen('settings')"><span class="ico">⚙️</span>設定</button>
@@ -605,6 +607,17 @@ body.print-one #weeklyPrintArea .weekly-receipt-seal{width:23px!important;height
     <div class="row"><h2>週間一覧</h2><button class="btn out" onclick="renderKagoWeeklyOverview()">再読み込み</button></div>
     <div class="card" style="margin-top:12px"><div class="grid2"><div><label>基準日</label><input id="weeklyOverviewDate" type="date" onchange="renderKagoWeeklyOverview()"></div><div><label>対象週</label><div id="weeklyOverviewRange" class="info"><span>-</span></div></div></div><p class="muted">月曜始まり・日曜締め。その週に実際に出勤したキャストだけを表示し、現在の週間給与から控除・徴収後の支給額合計を表示します。</p></div>
     <div id="weeklyOverviewArea" style="margin-top:12px"></div>
+  </section>
+  <section id="monthlyFinance" class="screen">
+    <div class="row">
+      <h2>月間収支</h2>
+      <div class="row monthly-finance-nav no-print" style="justify-content:flex-end">
+        <button class="btn out small" onclick="shiftMonthlyFinanceMonth(-1)">← 前月</button>
+        <input id="monthlyFinanceMonth" type="month" onchange="setMonthlyFinanceMonth(this.value)" style="max-width:170px">
+        <button class="btn out small" onclick="shiftMonthlyFinanceMonth(1)">翌月 →</button>
+      </div>
+    </div>
+    <div id="monthlyFinanceArea"></div>
   </section>
   <section id="manage" class="screen">
     <div class="row"><h2>管理</h2><button id="manageWeeklyBtn" class="btn blue" onclick="openScreen('weeklyOverview')">週間</button><button class="btn out" onclick="openWeeklyClosingOverview()">締め表一覧</button><button class="btn blue" onclick="openGuestRatePanel()">入客率</button><button class="btn ok" onclick="startBusinessDay()">営業開始</button><button class="btn blue" onclick="openClosingSheetInput()">締め票入力</button><button class="btn bad" onclick="endBusinessDay()">営業終了</button><button class="btn blue" onclick="makeClosing()">締め票作成</button><button class="btn out admin-only" onclick="openHistoryPanel()">履歴</button><button class="btn blue admin-only" onclick="openReceiptEditPanel()">伝票修正</button><button class="btn warn" onclick="openUnpaidPanel()">未収</button><button class="btn warn admin-only" onclick="openProfitLock()">利益率</button><button class="btn out admin-only" onclick="makeMonthly()">月締め票</button><button class="btn out admin-only" onclick="saveBackupManual()">バックアップ保存</button><button class="btn blue admin-only" onclick="openScreen('backup')">バックアップを見る</button></div>
@@ -638,8 +651,8 @@ body.print-one #weeklyPrintArea .weekly-receipt-seal{width:23px!important;height
       <h3>PC / iPhone 共有データ</h3>
       <p class="muted">PC / iPhone間を自動同期できます。設定保存後は変更を自動保存し、他端末の更新を定期取得します。手動保存・読込も使用できます。</p>
       <div class="grid2">
-        <div><label>Cloudflare 同期URL</label><input id="cloudDbUrl" placeholder="現在の公開URLを自動使用"></div>
-        <div><label>保存パス / 店舗ID</label><input id="cloudPath" placeholder="kagoshima/main"></div>
+        <div><label>Firebase Realtime Database URL</label><input id="cloudDbUrl" placeholder="https://xxxxx-default-rtdb.firebaseio.com"></div>
+        <div><label>保存パス / 店舗ID</label><input id="cloudPath" placeholder="blow2nd/main"></div>
         <div><label>認証トークン 任意</label><input id="cloudAuth" type="password" placeholder="未設定なら空欄"></div>
         <div><label>端末名</label><input id="cloudDevice" placeholder="PC / iPhone など"></div>
       </div>
@@ -653,13 +666,13 @@ body.print-one #weeklyPrintArea .weekly-receipt-seal{width:23px!important;height
     </div>
     <div class="card">
       <h3>設定移行</h3>
-      <p class="muted">iPhone側に同じクラウド同期設定を入れるための補助です。</p>
+      <p class="muted">iPhone側に同じFirebase設定を入れるための補助です。</p>
       <div class="row"><button class="btn out" onclick="exportCloudConfig()">同期設定を書き出し</button><button class="btn out" onclick="document.getElementById('cloudConfigFile').click()">同期設定を読み込み</button></div>
       <input id="cloudConfigFile" type="file" accept="application/json" style="display:none" onchange="importCloudConfig(event)">
     </div>
   </section>
 
-  <section id="settings" class="screen"><div class="card admin-only" style="margin-bottom:12px;border-color:#bfdbfe"><div class="row"><h2>メンテナンス</h2><button class="btn out" onclick="renderMaintenanceStatus()">再確認</button><button class="btn warn" onclick="runSafeMaintenance()">安全メンテナンス実行</button></div><p class="muted">表示用バックアップ履歴など一時データのみ整理します。過去会計・給与・締め票・キャスト・クラウド同期設定は保持します。</p><div id="maintenanceStatus" class="muted"></div></div><div class="card"><h2>店舗標準 給与・バック設定</h2><p class="muted">ここを変えると標準設定を使うキャスト、新規追加キャスト、給与計算・バック計算に反映します。</p><div class="grid4" id="defaultBackSettingsBox"></div></div><div class="grid2" style="margin-top:12px"><div class="card"><h2>キャスト管理</h2><p class="muted">キャストの追加・名前変更・給与設定・表示切替は「キャスト」欄へ移動しました。</p><button class="btn blue" onclick="openScreen('casts')">キャスト欄を開く</button></div><div class="card"><h2>シャンパン原価</h2><div class="scroll"><table><thead><tr><th>商品</th><th class="right">売価</th><th class="right">原価</th></tr></thead><tbody id="champRows"></tbody></table></div></div></div><div class="card" style="margin-top:12px;border-color:#fecaca"><h2 class="danger">初期化</h2><p class="muted">試運転データを消して、キャスト・卓・売上・履歴・仕入れ支出をすべて初期状態に戻します。</p><button class="btn bad" onclick="resetAllData()">全データ初期化</button>
+  <section id="settings" class="screen"><div class="card admin-only" style="margin-bottom:12px;border-color:#bfdbfe"><div class="row"><h2>メンテナンス</h2><button class="btn out" onclick="renderMaintenanceStatus()">再確認</button><button class="btn warn" onclick="runSafeMaintenance()">安全メンテナンス実行</button></div><p class="muted">表示用バックアップ履歴など一時データのみ整理します。過去会計・給与・締め票・キャスト・Firebase設定は保持します。</p><div id="maintenanceStatus" class="muted"></div></div><div class="card"><h2>店舗標準 給与・バック設定</h2><p class="muted">ここを変えると標準設定を使うキャスト、新規追加キャスト、給与計算・バック計算に反映します。</p><div class="grid4" id="defaultBackSettingsBox"></div></div><div class="grid2" style="margin-top:12px"><div class="card"><h2>キャスト管理</h2><p class="muted">キャストの追加・名前変更・給与設定・表示切替は「キャスト」欄へ移動しました。</p><button class="btn blue" onclick="openScreen('casts')">キャスト欄を開く</button></div><div class="card"><h2>シャンパン原価</h2><div class="scroll"><table><thead><tr><th>商品</th><th class="right">売価</th><th class="right">原価</th></tr></thead><tbody id="champRows"></tbody></table></div></div></div><div class="card" style="margin-top:12px;border-color:#fecaca"><h2 class="danger">初期化</h2><p class="muted">試運転データを消して、キャスト・卓・売上・履歴・仕入れ支出をすべて初期状態に戻します。</p><button class="btn bad" onclick="resetAllData()">全データ初期化</button>
 <button class="btn out" onclick="document.getElementById('settingRestoreFile').click()">バックアップ読込</button>
 <input id="settingRestoreFile" type="file" accept="application/json" style="display:none" onchange="restoreBackup(event)">
 <hr style="border:none;border-top:1px solid #e5e7eb;margin:14px 0">
@@ -880,7 +893,8 @@ try{
 }catch(e){__rawLocalState={};}
 let state={...init(),...__rawLocalState};
 state.cashFlows=state.cashFlows||[]; state.closings=state.closings||[]; state.orderDeleteLogs=state.orderDeleteLogs||[]; state.businessSheets=state.businessSheets||[];
-state.unpaids=state.unpaids||[]; state.backups=state.backups||[]; state.payrollLocks=state.payrollLocks||{}; state.manualClosingSheets=state.manualClosingSheets||[]; state.manualClosingDaySheets=state.manualClosingDaySheets||[]; state.receiptEditAudit=state.receiptEditAudit||[]; state.receiptEditOtp=state.receiptEditOtp||null;
+state.unpaids=state.unpaids||[]; state.backups=state.backups||[]; state.payrollLocks=state.payrollLocks||{}; state.manualClosingSheets=state.manualClosingSheets||[]; state.manualClosingDaySheets=state.manualClosingDaySheets||[]; state.manualClosingDeleted=(state.manualClosingDeleted&&typeof state.manualClosingDeleted==='object'&&!Array.isArray(state.manualClosingDeleted))?state.manualClosingDeleted:{}; state.receiptEditAudit=state.receiptEditAudit||[]; state.receiptEditOtp=state.receiptEditOtp||null;
+state.monthlyFinance=(state.monthlyFinance&&typeof state.monthlyFinance==='object'&&!Array.isArray(state.monthlyFinance))?state.monthlyFinance:{};
 const DEFAULT_BACK_SETTINGS={hourly:2500,deductionRate:10.21,dbBack:300,sbBack:600,jounaiBack:500,dohanBack:2000,afterBack:1000,nomSetBack:1000,nomSubRate:10,wheelNomRate:20,wheelFreeRate:10,wheelFullFreeRate:20,champNomRate:20,champFreeRate:10,champFullFreeRate:20,raiseNomDohan:300,raiseAfter:200,raiseBoth:500};
 function normalizeBackSettings(v={}){let o={...DEFAULT_BACK_SETTINGS,...(v||{})};Object.keys(DEFAULT_BACK_SETTINGS).forEach(k=>{o[k]=Number(o[k]);if(!Number.isFinite(o[k]))o[k]=DEFAULT_BACK_SETTINGS[k];});return o}
 state.defaultBackSettings=normalizeBackSettings(state.defaultBackSettings);
@@ -1153,12 +1167,7 @@ function save(){
 
 
 function getCloudConfig(){
-  let cfg={};
-  try{cfg=JSON.parse(localStorage.getItem(CLOUD_KEY)||'{}')||{}}catch(e){cfg={}}
-  if(!cfg.dbUrl)cfg.dbUrl=location.origin;
-  if(!cfg.path)cfg.path='kagoshima/main';
-  if(cfg.autoSync===undefined)cfg.autoSync=true;
-  return cfg;
+  try{return JSON.parse(localStorage.getItem(CLOUD_KEY)||'{}')||{}}catch(e){return {}}
 }
 
 function setCloudStatus(msg,isError=false){
@@ -1171,11 +1180,11 @@ function normalizeCloudUrl(url){
   if(second>0)u=u.slice(0,second);
   return u.replace(/\/+$/,'');
 }
-function normalizeCloudPath(path){return String(path||'kagoshima/main').trim().replace(/^\/+|\/+$/g,'').replace(/[^a-zA-Z0-9_\-\/]/g,'_')}
+function normalizeCloudPath(path){return String(path||'blow2nd/main').trim().replace(/^\/+|\/+$/g,'').replace(/[^a-zA-Z0-9_\-\/]/g,'_')}
 function buildCloudEndpoint(cfg){
   const base=normalizeCloudUrl(cfg.dbUrl);
   const path=normalizeCloudPath(cfg.path);
-  if(!base)throw new Error('Cloudflare 同期URLが未設定です');
+  if(!base)throw new Error('Firebase Database URLが未設定です');
   if(!path)throw new Error('保存パスが未設定です');
   let url=base+'/'+path+'.json';
   if(cfg.auth)url+='?auth='+encodeURIComponent(cfg.auth);
@@ -1183,8 +1192,8 @@ function buildCloudEndpoint(cfg){
 }
 function renderCloudSync(){
   const cfg=getCloudConfig();
-  const db=document.getElementById('cloudDbUrl'); if(db)db.value=cfg.dbUrl||location.origin;
-  const path=document.getElementById('cloudPath'); if(path)path.value=cfg.path||'kagoshima/main';
+  const db=document.getElementById('cloudDbUrl'); if(db)db.value=cfg.dbUrl||'';
+  const path=document.getElementById('cloudPath'); if(path)path.value=cfg.path||'blow2nd/main';
   const auth=document.getElementById('cloudAuth'); if(auth)auth.value=cfg.auth||'';
   const dev=document.getElementById('cloudDevice'); if(dev)dev.value=cfg.device||('device-'+Math.random().toString(36).slice(2,8));
   const last=cfg.lastSyncAt?'\n最終同期: '+new Date(cfg.lastSyncAt).toLocaleString()+' / '+(cfg.lastAction||''):'';
@@ -1192,8 +1201,8 @@ function renderCloudSync(){
 }
 function saveCloudConfig(){
   const cfg={
-    dbUrl:normalizeCloudUrl(document.getElementById('cloudDbUrl')?.value||location.origin),
-    path:normalizeCloudPath(document.getElementById('cloudPath')?.value||'kagoshima/main'),
+    dbUrl:normalizeCloudUrl(document.getElementById('cloudDbUrl')?.value||''),
+    path:normalizeCloudPath(document.getElementById('cloudPath')?.value||'blow2nd/main'),
     auth:document.getElementById('cloudAuth')?.value||'',
     device:document.getElementById('cloudDevice')?.value||'unknown-device'
   };
@@ -1229,7 +1238,7 @@ async function cloudSave(){
     if(!res.ok)throw new Error('保存失敗 HTTP '+res.status+' '+text);
     let written=null;
     try{written=text?JSON.parse(text):null}catch{}
-    if(!written || !(written.state||written.data))throw new Error('クラウドへの書込結果が空です');
+    if(!written || !(written.state||written.data))throw new Error('Firebaseへの書込結果が空です');
     localStorage.setItem(CLOUD_KEY,JSON.stringify(Object.assign({},cfg,{lastSyncAt:Date.now(),lastAction:'save'})));
     setCloudStatus('クラウド保存完了。\n更新: '+new Date(payload.updatedAt).toLocaleString()+'\n端末: '+payload.device+'\n保存パス: '+cfg.path);
   }catch(e){setCloudStatus('クラウド保存エラー: '+(e.message||e),true)}
@@ -1271,7 +1280,7 @@ async function cloudCheck(){
 function exportCloudConfig(){
   const cfg=getCloudConfig();
   const blob=new Blob([JSON.stringify(cfg,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kagoshima_cloud_sync_config.json';a.click();URL.revokeObjectURL(a.href);
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='blow2nd_cloud_sync_config.json';a.click();URL.revokeObjectURL(a.href);
 }
 function importCloudConfig(ev){
   const f=ev.target.files&&ev.target.files[0]; if(!f)return;
@@ -2865,7 +2874,9 @@ function normalizeRestoreDataForLocalStorage(data){
   restored.payrollLocks=restored.payrollLocks||{};
   restored.manualClosingSheets=Array.isArray(restored.manualClosingSheets)?restored.manualClosingSheets:[];
   restored.manualClosingDaySheets=Array.isArray(restored.manualClosingDaySheets)?restored.manualClosingDaySheets:[];
+  restored.manualClosingDeleted=(restored.manualClosingDeleted&&typeof restored.manualClosingDeleted==='object'&&!Array.isArray(restored.manualClosingDeleted))?restored.manualClosingDeleted:{};
   restored.receiptEditAudit=Array.isArray(restored.receiptEditAudit)?restored.receiptEditAudit:[]; restored.receiptEditOtp=restored.receiptEditOtp||null;
+  restored.monthlyFinance=(restored.monthlyFinance&&typeof restored.monthlyFinance==='object'&&!Array.isArray(restored.monthlyFinance))?restored.monthlyFinance:{};
   return restored;
 }
 
@@ -3177,6 +3188,10 @@ function renderBusinessHistory(){
 function deleteBusinessHistory(d){
   if(!historyUnlocked) return openHistoryPanel();
   if(!confirm(`${d} の履歴を削除します。復元できません。よろしいですか？`)) return;
+  const deletedAt=new Date().toISOString();
+  state.manualClosingDeleted=(state.manualClosingDeleted&&typeof state.manualClosingDeleted==='object')?state.manualClosingDeleted:{};
+  (state.manualClosingSheets||[]).filter(x=>x.businessDate===d).forEach(x=>{state.manualClosingDeleted[x.id]=deletedAt;state.manualClosingDeleted[`cast:${d}:${x.castId}`]=deletedAt;});
+  (state.casts||[]).forEach(c=>{if(c.logs&&c.logs[d]){state.manualClosingDeleted[`cast:${d}:${c.id}`]=deletedAt;delete c.logs[d];}});
   state.sales=(state.sales||[]).filter(x=>x.businessDate!==d);
   state.expenses=(state.expenses||[]).filter(x=>x.businessDate!==d);
   state.cashFlows=(state.cashFlows||[]).filter(x=>x.businessDate!==d);
@@ -3184,7 +3199,9 @@ function deleteBusinessHistory(d){
   state.orderDeleteLogs=(state.orderDeleteLogs||[]).filter(x=>x.businessDate!==d);
   state.businessSheets=(state.businessSheets||[]).filter(x=>x.businessDate!==d);
   state.manualClosingSheets=(state.manualClosingSheets||[]).filter(x=>x.businessDate!==d);
-  (state.casts||[]).forEach(c=>{ if(c.logs && c.logs[d]) delete c.logs[d]; });
+  state.manualClosingDaySheets=(state.manualClosingDaySheets||[]).filter(x=>x.businessDate!==d);
+  state.collections=(state.collections||[]).filter(x=>x.businessDate!==d);
+  state.unpaids=(state.unpaids||[]).filter(x=>x.businessDate!==d);
   save();
   render();
   historyPanel.style.display='block';
@@ -3193,13 +3210,21 @@ function deleteBusinessHistory(d){
 function deleteAllHistory(){
   if(!historyUnlocked) return openHistoryPanel();
   if(!confirm('すべての履歴を削除します。復元できません。よろしいですか？')) return;
+  const deletedAt=new Date().toISOString();
+  state.manualClosingDeleted=(state.manualClosingDeleted&&typeof state.manualClosingDeleted==='object')?state.manualClosingDeleted:{};
+  (state.manualClosingSheets||[]).forEach(x=>{state.manualClosingDeleted[x.id]=deletedAt;state.manualClosingDeleted[`cast:${x.businessDate}:${x.castId}`]=deletedAt;});
+  (state.casts||[]).forEach(c=>{Object.keys(c.logs||{}).forEach(d=>{state.manualClosingDeleted[`cast:${d}:${c.id}`]=deletedAt;});c.logs={};});
   state.sales=[];
   state.expenses=[];
   state.cashFlows=[];
   state.closings=[];
   state.orderDeleteLogs=[];
   state.businessSheets=[];
-  (state.casts||[]).forEach(c=>{ c.logs={}; });
+  state.manualClosingSheets=[];
+  state.manualClosingDaySheets=[];
+  state.collections=[];
+  state.unpaids=[];
+  state.payrollLocks={};
   save();
   render();
   historyPanel.style.display='block';
@@ -3835,7 +3860,7 @@ function saveManualDayCloseFromForm(d){
   if(rec.totalSales||rec.cashSales||rec.cardSales||rec.unpaidSales||rec.memo) state.manualClosingDaySheets.push(rec);
 }
 
-function manualClosingRowsForDate(d){return (state.manualClosingSheets||[]).filter(x=>x.businessDate===d).sort((a,b)=>(a.castName||'').localeCompare(b.castName||''));}
+function manualClosingRowsForDate(d){const tombs=(state.manualClosingDeleted&&typeof state.manualClosingDeleted==='object')?state.manualClosingDeleted:{};const ts=v=>Date.parse(v||0)||0;return (state.manualClosingSheets||[]).filter(x=>{if(x.businessDate!==d)return false;const rowAt=ts(x.updatedAt||x.createdAt);const delAt=Math.max(ts(tombs[x.id]),ts(tombs[`cast:${x.businessDate}:${x.castId}`]));return !(delAt&&delAt>=rowAt);}).sort((a,b)=>(a.castName||'').localeCompare(b.castName||''));}
 function manualClosingCastOptions(selected=''){
   return (state.casts||[]).map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${c.name}</option>`).join('')||'<option value="">キャスト未登録</option>';
 }
@@ -4381,16 +4406,21 @@ if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.s
   function storageUsage(){let total=0;for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i)||'';const v=localStorage.getItem(k)||'';total+=(k.length+v.length)*2;}return total}
   function bytesLabel(n){return n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB'}
   window.renderMaintenanceStatus=function(){const el=document.getElementById('maintenanceStatus');if(el)el.textContent=`ブラウザ保存使用量（概算）：${bytesLabel(storageUsage())} / 表示用バックアップ履歴：${(state.backups||[]).length}件 / 容量超過時はIndexedDBへ自動退避`;};
-  window.runSafeMaintenance=function(){if(!requireAdmin())return;if(!confirm('安全メンテナンスを実行します。\n\n削除：表示用バックアップ履歴・期限切れ修正コード・古い修正ログ（500件超）\n保持：過去会計・給与・締め票・キャスト・クラウド同期設定\n\n実行しますか？'))return;const before=storageUsage();state.backups=[];state.receiptEditAudit=(state.receiptEditAudit||[]).slice(0,500);if(state.receiptEditOtp&&Date.now()>Number(state.receiptEditOtp.expiresAt||0))state.receiptEditOtp=null;save();const after=storageUsage();renderMaintenanceStatus();alert(`メンテナンス完了。\n整理前：${bytesLabel(before)}\n整理後：${bytesLabel(after)}\n削減：${bytesLabel(Math.max(0,before-after))}`);};
+  window.runSafeMaintenance=function(){if(!requireAdmin())return;if(!confirm('安全メンテナンスを実行します。\n\n削除：表示用バックアップ履歴・期限切れ修正コード・古い修正ログ（500件超）\n保持：過去会計・給与・締め票・キャスト・Firebase設定\n\n実行しますか？'))return;const before=storageUsage();state.backups=[];state.receiptEditAudit=(state.receiptEditAudit||[]).slice(0,500);if(state.receiptEditOtp&&Date.now()>Number(state.receiptEditOtp.expiresAt||0))state.receiptEditOtp=null;save();const after=storageUsage();renderMaintenanceStatus();alert(`メンテナンス完了。\n整理前：${bytesLabel(before)}\n整理後：${bytesLabel(after)}\n削減：${bytesLabel(Math.max(0,before-after))}`);};
 
   let autoSyncTimer=null,autoSyncPollTimer=null,autoSyncBusy=false,applyingRemoteState=false,lastCloudUpdatedAt='';
-  function syncSig(st){try{return JSON.stringify({businessDate:st.businessDate,sales:(st.sales||[]).length,tables:st.tables,casts:st.casts,manualClosingSheets:st.manualClosingSheets,manualClosingDaySheets:st.manualClosingDaySheets,expenses:st.expenses,purchaseFundOpening:st.purchaseFundOpening,purchaseFundTopups:st.purchaseFundTopups,cashFlows:st.cashFlows,unpaids:st.unpaids})}catch{return String(Date.now())}}
+  function syncSig(st){try{return JSON.stringify({businessDate:st.businessDate,businessOpen:st.businessOpen,sales:(st.sales||[]).length,tables:st.tables,casts:st.casts,manualClosingSheets:st.manualClosingSheets,manualClosingDaySheets:st.manualClosingDaySheets,manualClosingDeleted:st.manualClosingDeleted,expenses:st.expenses,purchaseFundOpening:st.purchaseFundOpening,purchaseFundTopups:st.purchaseFundTopups,cashFlows:st.cashFlows,unpaids:st.unpaids,collections:st.collections,defaultBackSettings:st.defaultBackSettings,payrollLocks:st.payrollLocks,monthlyFinance:st.monthlyFinance})}catch{return String(Date.now())}}
   let lastLocalSig=syncSig(state);
   function isAutoSyncEnabled(){return getCloudConfig().autoSync!==false && !!getCloudConfig().dbUrl}
   window.updateAutoSyncButton=function(){const b=document.getElementById('autoSyncBtn');if(b)b.textContent=isAutoSyncEnabled()?'自動同期 ON':'自動同期をON'};
   async function autoCloudSave(){if(applyingRemoteState||autoSyncBusy||!isAutoSyncEnabled())return;autoSyncBusy=true;try{const cfg=getCloudConfig();const payload=cloudStatePayload(cfg);const res=await fetch(buildCloudEndpoint(cfg),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok)throw new Error('HTTP '+res.status);lastCloudUpdatedAt=payload.updatedAt;localStorage.setItem(CLOUD_KEY,JSON.stringify({...cfg,lastSyncAt:Date.now(),lastAction:'auto-save',autoSync:true}));setCloudStatus('自動同期 ON\n最終保存: '+new Date().toLocaleString());}catch(e){setCloudStatus('自動同期保存エラー: '+(e.message||e),true)}finally{autoSyncBusy=false}}
   function mergeById(local,remote,keyFn){const m=new Map();[...(remote||[]),...(local||[])].forEach(x=>{const k=keyFn(x),prev=m.get(k);if(!prev){m.set(k,x);return;}const pt=Date.parse(prev.updatedAt||prev.createdAt||0)||0,xt=Date.parse(x.updatedAt||x.createdAt||0)||0;if(xt>=pt)m.set(k,x)});return [...m.values()]}
-  async function pollCloudChanges(){if(autoSyncBusy||applyingRemoteState||!isAutoSyncEnabled()||document.hidden)return;autoSyncBusy=true;try{const cfg=getCloudConfig();const res=await fetch(buildCloudEndpoint(cfg),{method:'GET'});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();const remote=data&&(data.state||data.data);if(!remote||!data.updatedAt||data.updatedAt===lastCloudUpdatedAt)return;const remoteTime=Date.parse(data.updatedAt)||0;if(remoteTime<=0)return; applyingRemoteState=true;const localManual=state.manualClosingSheets||[],localDays=state.manualClosingDaySheets||[];let next=normalizeRestoreDataForLocalStorage(remote);next.manualClosingSheets=mergeById(localManual,next.manualClosingSheets,x=>x.id||`${x.businessDate}|${x.castId}|${x.createdAt||''}`);next.manualClosingDaySheets=mergeById(localDays,next.manualClosingDaySheets,x=>x.businessDate);state=next;repairActiveTableTimes();repairAllExtensionDurations();save();lastCloudUpdatedAt=data.updatedAt;lastLocalSig=syncSig(state);render();setCloudStatus('自動同期 ON\n最終読込: '+new Date().toLocaleString()+' / '+(data.device||'-'));}catch(e){setCloudStatus('自動同期読込エラー: '+(e.message||e),true)}finally{applyingRemoteState=false;autoSyncBusy=false}}
+  function mergeClosingTombstones(local,remote){const out={};[remote,local].forEach(src=>{if(!src||typeof src!=='object'||Array.isArray(src))return;Object.entries(src).forEach(([k,v])=>{const cur=Date.parse(out[k]||0)||0,nt=Date.parse(v||0)||0;if(nt>=cur)out[k]=v;});});return out;}
+  function closingRowTime(x){return Date.parse(x?.updatedAt||x?.createdAt||0)||0}
+  function closingDeletedAt(tombs,row){return Math.max(Date.parse(tombs?.[row?.id]||0)||0,Date.parse(tombs?.[`cast:${row?.businessDate}:${row?.castId}`]||0)||0)}
+  function removeCastRefsForSync(t,cid){if(!t)return;const id=String(cid);['callCasts','nominations','dohan','jounai','after'].forEach(k=>{if(Array.isArray(t[k]))t[k]=t[k].filter(v=>String(v)!==id)});if(t.jounaiCounts&&typeof t.jounaiCounts==='object'&&!Array.isArray(t.jounaiCounts)){Object.keys(t.jounaiCounts).forEach(k=>{if(String(k)===id)delete t.jounaiCounts[k]})}(t.items||[]).forEach(i=>{if(String(i.castId||'')===id)i.castId='';if(Array.isArray(i.drinkers))i.drinkers=i.drinkers.filter(v=>String(v)!==id)});}
+  function applyClosingTombstones(st){const tombs=(st.manualClosingDeleted&&typeof st.manualClosingDeleted==='object'&&!Array.isArray(st.manualClosingDeleted))?st.manualClosingDeleted:{};st.manualClosingSheets=(st.manualClosingSheets||[]).filter(r=>{const del=closingDeletedAt(tombs,r),rt=closingRowTime(r);return !(del&&del>=rt)});const newest=new Map();(st.manualClosingSheets||[]).forEach(r=>{const k=`${r.businessDate}|${r.castId}`,prev=newest.get(k);if(!prev||closingRowTime(r)>=closingRowTime(prev))newest.set(k,r);const idDel=Date.parse(tombs[r.id]||0)||0;if(idDel&&closingRowTime(r)>idDel)delete tombs[r.id]});Object.entries({...tombs}).forEach(([k,v])=>{if(!k.startsWith('cast:'))return;const parts=k.split(':'),d=parts[1],cid=parts.slice(2).join(':'),delAt=Date.parse(v||0)||0,live=newest.get(`${d}|${cid}`);if(live&&closingRowTime(live)>delAt){delete tombs[k];return;}const c=(st.casts||[]).find(x=>String(x.id)===String(cid));if(c?.logs?.[d]){const logAt=Date.parse(c.logs[d]._updatedAt||c.logs[d].manualClosingUpdatedAt||0)||0;if(!logAt||logAt<=delAt)delete c.logs[d]}(st.businessSheets||[]).forEach(sh=>{if(sh.businessDate===d&&Array.isArray(sh.attendance))sh.attendance=sh.attendance.filter(a=>String(a.castId)!==String(cid))});st.collections=(st.collections||[]).filter(x=>!(x.businessDate===d&&String(x.castId)===String(cid)));(st.sales||[]).filter(x=>x.businessDate===d).forEach(x=>removeCastRefsForSync(x.table,cid));if(st.businessDate===d)(st.tables||[]).forEach(t=>removeCastRefsForSync(t,cid));});st.manualClosingDeleted=tombs;return st;}
+  async function pollCloudChanges(){if(autoSyncBusy||applyingRemoteState||!isAutoSyncEnabled()||document.hidden)return;autoSyncBusy=true;try{const cfg=getCloudConfig();const res=await fetch(buildCloudEndpoint(cfg),{method:'GET'});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();const remote=data&&(data.state||data.data);if(!remote||!data.updatedAt||data.updatedAt===lastCloudUpdatedAt)return;const remoteTime=Date.parse(data.updatedAt)||0;if(remoteTime<=0)return;applyingRemoteState=true;const localManual=state.manualClosingSheets||[],localDays=state.manualClosingDaySheets||[],localDeleted=state.manualClosingDeleted||{};let next=normalizeRestoreDataForLocalStorage(remote);next.manualClosingDeleted=mergeClosingTombstones(localDeleted,next.manualClosingDeleted);next.manualClosingSheets=mergeById(localManual,next.manualClosingSheets,x=>x.id||`${x.businessDate}|${x.castId}|${x.createdAt||''}`);next.manualClosingDaySheets=mergeById(localDays,next.manualClosingDaySheets,x=>x.businessDate);next=applyClosingTombstones(next);state=next;repairActiveTableTimes();repairAllExtensionDurations();save();lastCloudUpdatedAt=data.updatedAt;lastLocalSig=syncSig(state);render();setCloudStatus('自動同期 ON\n最終読込: '+new Date().toLocaleString()+' / '+(data.device||'-'));}catch(e){setCloudStatus('自動同期読込エラー: '+(e.message||e),true)}finally{applyingRemoteState=false;autoSyncBusy=false}}
   const _save=window.save; window.save=function(){const r=_save.apply(this,arguments);if(!applyingRemoteState&&isAutoSyncEnabled()){const sig=syncSig(state);if(sig!==lastLocalSig){lastLocalSig=sig;clearTimeout(autoSyncTimer);autoSyncTimer=setTimeout(autoCloudSave,800)}}return r};
   const _saveCloudConfig=window.saveCloudConfig; window.saveCloudConfig=function(){const cfg=_saveCloudConfig.apply(this,arguments);const merged={...getCloudConfig(),...cfg,autoSync:getCloudConfig().autoSync!==false};localStorage.setItem(CLOUD_KEY,JSON.stringify(merged));updateAutoSyncButton();return merged};
   window.toggleAutoSync=function(){const cfg=getCloudConfig();cfg.autoSync=!isAutoSyncEnabled(); if(!cfg.dbUrl)cfg.autoSync=true;localStorage.setItem(CLOUD_KEY,JSON.stringify(cfg));updateAutoSyncButton();startAutoSync();};
@@ -4603,14 +4633,18 @@ manualDayRevenue=function(d){
 };
 function kagoManualDayForm(d){
   const saved=manualDayCloseForDate(d),op=kagoOperationalRevenue(d);
-  return saved?{totalSales:Number(saved.totalSales||0),cashSales:Number(saved.cashSales||0),cardSales:Number(saved.cardSales||0),unpaidSales:Number(saved.unpaidSales||0),memo:saved.memo||''}:{totalSales:Number(op.total||0),cashSales:Number(op.cash||0),cardSales:Number(op.card||0),unpaidSales:Number(op.unpaid||0),memo:''};
+  if(!saved)return{totalSales:Number(op.total||0),cashSales:Number(op.cash||0),cardSales:Number(op.card||0),unpaidSales:Number(op.unpaid||0),memo:''};
+  if(saved.linkedBase)return{totalSales:Number(saved.totalSales||0),cashSales:Number(saved.cashSales||0),cardSales:Number(saved.cardSales||0),unpaidSales:Number(saved.unpaidSales||0),memo:saved.memo||''};
+  const eff=dayRevenueBreakdown(d);
+  return{totalSales:Number(eff.total||0),cashSales:Number(eff.cash||0),cardSales:Number(eff.card||0),unpaidSales:Number(eff.unpaid||0),memo:saved.memo||''};
 }
 saveManualDayCloseFromForm=function(d){
   state.manualClosingDaySheets=state.manualClosingDaySheets||[];
   const old=manualDayCloseForDate(d)||{}, base=old.linkedBase||kagoOperationalRevenue(d);
   const rec={id:old.id||uuid(),businessDate:d,totalSales:numFrom('manualTotalSales'),cashSales:numFrom('manualCashSales'),cardSales:numFrom('manualCardSales'),unpaidSales:numFrom('manualUnpaidSales'),memo:document.getElementById('manualDayMemo')?.value||'',linkedBase:base,updatedAt:new Date().toISOString()};
   state.manualClosingDaySheets=state.manualClosingDaySheets.filter(x=>x.businessDate!==d);
-  if(rec.totalSales||rec.cashSales||rec.cardSales||rec.unpaidSales||rec.memo)state.manualClosingDaySheets.push(rec);
+  rec.authoritativeClosing=true;
+  state.manualClosingDaySheets.push(rec);
 };
 manualClosingCastOptions=function(selected=''){
   return (state.casts||[]).filter(c=>typeof isCastHidden==='function'?!isCastHidden(c):!c.hidden).map(c=>`<option value="${c.id}" ${String(c.id)===String(selected)?'selected':''}>${esc(c.name)}</option>`).join('')||'<option value="">表示中のキャストなし</option>';
@@ -4640,23 +4674,20 @@ function kagoTrueAttendanceForDate(d){
   const att=kagoAttendanceSnapshotForDate(d),map={};
   (state.casts||[]).forEach(c=>{
     const cid=String(c.id),saved=att[cid]||{},raw=(c.logs||{})[d]||{};
-    // 営業終了時スナップショットを最優先。
-    // 現在ログを使う場合も、締め表入力から書き戻された manualClosing ログは「実出勤」とみなさない。
-    const log=String(saved.in||'').trim()?saved:(!raw.manualClosing?raw:{});
+    // 保存済みスナップショットを優先し、無ければ現在ログを使う。
+    // 締め票入力から書き戻した manualClosing ログも過去修正の正本として有効。
+    const log=String(saved.in||'').trim()?saved:raw;
     if(String(log.in||'').trim() && log.in!=='休み' && log.in!=='00:00') map[cid]=log;
   });
   return map;
 }
 function ensureKagoOperationalClosingRows(d){
   state.manualClosingSheets=state.manualClosingSheets||[];state.manualClosingDeleted=state.manualClosingDeleted||{};
-  const actual=kagoTrueAttendanceForDate(d),actualIds=new Set(Object.keys(actual));
+  const actual=kagoTrueAttendanceForDate(d);
   let changed=false;
 
-  // 未出勤者の履歴は表示・保存対象から外す。以前誤生成された行もここで除去。
-  const before=state.manualClosingSheets.length;
-  state.manualClosingSheets=state.manualClosingSheets.filter(r=>r.businessDate!==d||actualIds.has(String(r.castId)));
-  if(state.manualClosingSheets.length!==before)changed=true;
-
+  // 締め票入力は過去修正時の最終確定データ。
+  // 元の営業終了スナップショットに存在しないという理由で、手入力した行を削除してはいけない。
   const existing=new Set((state.manualClosingSheets||[]).filter(x=>x.businessDate===d).map(x=>String(x.castId)));
   (state.casts||[]).forEach(c=>{
     const cid=String(c.id),log=actual[cid];
@@ -4713,16 +4744,121 @@ editManualClosingSheet=function(id){
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??''};set('manualCloseDate',r.businessDate);set('manualCloseCast',r.castId);set('manualCloseIn',r.in||'');set('manualCloseOut',r.out||'');set('manualDbQty',r.dbQty||0);set('manualSbQty',r.sbQty||0);set('manualWheelBack',r.wheelBack||0);set('manualChampBack',r.champBack||0);set('manualCallBack',r.callBack||0);set('manualOtherBack',r.otherBack||0);set('manualMemo',r.memo||'');
   const b=document.getElementById('manualClosingSaveButton');if(b)b.textContent='修正内容を更新';const c=document.getElementById('manualClosingCancelEdit');if(c)c.style.display='inline-block';updateManualBackPreview();
 };
+function kagoReplaceCastIdInArray(arr,fromId,toId){
+  if(!Array.isArray(arr))return arr;
+  const from=String(fromId),to=String(toId),out=[];
+  arr.forEach(v=>{const nv=String(v)===from?to:v;if(!out.some(x=>String(x)===String(nv)))out.push(nv)});
+  return out;
+}
+function kagoReassignTableCastRefs(t,fromId,toId){
+  if(!t)return;
+  ['callCasts','nominations','dohan','jounai','after'].forEach(k=>{if(Array.isArray(t[k]))t[k]=kagoReplaceCastIdInArray(t[k],fromId,toId)});
+  if(t.jounaiCounts&&typeof t.jounaiCounts==='object'&&!Array.isArray(t.jounaiCounts)){
+    const from=String(fromId),to=String(toId);
+    if(Object.prototype.hasOwnProperty.call(t.jounaiCounts,from)){
+      t.jounaiCounts[to]=(Number(t.jounaiCounts[to])||0)+(Number(t.jounaiCounts[from])||0);
+      delete t.jounaiCounts[from];
+    }
+  }
+  (t.items||[]).forEach(i=>{
+    if(String(i.castId||'')===String(fromId))i.castId=toId;
+    if(Array.isArray(i.drinkers))i.drinkers=kagoReplaceCastIdInArray(i.drinkers,fromId,toId);
+  });
+}
+function kagoRemoveCastFromTableRefs(t,cid){
+  if(!t)return;
+  const id=String(cid);
+  ['callCasts','nominations','dohan','jounai','after'].forEach(k=>{
+    if(Array.isArray(t[k]))t[k]=t[k].filter(v=>String(v)!==id);
+  });
+  if(t.jounaiCounts&&typeof t.jounaiCounts==='object'&&!Array.isArray(t.jounaiCounts)){
+    Object.keys(t.jounaiCounts).forEach(k=>{if(String(k)===id)delete t.jounaiCounts[k]});
+  }
+  (t.items||[]).forEach(i=>{
+    if(String(i.castId||'')===id)i.castId='';
+    if(Array.isArray(i.drinkers))i.drinkers=i.drinkers.filter(v=>String(v)!==id);
+  });
+}
+function kagoWriteAuthoritativeAttendance(d,cast,inTime,outTime){
+  if(!d||!cast)return;
+  cast.logs=cast.logs||{};
+  const prev=cast.logs[d]||{};
+  const hasTime=!!String(inTime||outTime||'').trim();
+  cast.logs[d]=hasTime?{...prev,in:inTime||'',out:outTime||'',absent:false,status:'',manualClosing:true,manualClosingUpdatedAt:new Date().toISOString()}:{in:'',out:'',absent:true,status:'休み',manualClosing:true,manualClosingUpdatedAt:new Date().toISOString()};
+}
+function kagoPurgeCastForBusinessDate(d,cid,{keepManualRow=false}={}){
+  if(!d||!cid)return;
+  const cast=(state.casts||[]).find(c=>String(c.id)===String(cid));
+  if(cast?.logs)delete cast.logs[d];
+  (state.sales||[]).filter(s=>s.businessDate===d).forEach(s=>kagoRemoveCastFromTableRefs(s.table,cid));
+  if(d===state.businessDate)(state.tables||[]).forEach(t=>kagoRemoveCastFromTableRefs(t,cid));
+  state.collections=(state.collections||[]).filter(x=>!(x.businessDate===d&&String(x.castId)===String(cid)));
+  if(!keepManualRow)state.manualClosingSheets=(state.manualClosingSheets||[]).filter(x=>!(x.businessDate===d&&String(x.castId)===String(cid)));
+  state.manualClosingDeleted=state.manualClosingDeleted||{};
+  state.manualClosingDeleted[kagoClosingDeleteKey(d,cid)]=new Date().toISOString();
+  syncDerivedAfterReceiptEdit(d);
+}
+function kagoReassignCastForBusinessDate(d,fromId,toId,inTime,outTime){
+  if(!d||String(fromId)===String(toId))return;
+  const from=(state.casts||[]).find(c=>String(c.id)===String(fromId));
+  const to=(state.casts||[]).find(c=>String(c.id)===String(toId));
+  if(!from||!to)throw new Error('キャスト変更先を確認できません');
+
+  // 過去伝票のキャスト参照を同じ営業日の範囲だけ移管する。
+  (state.sales||[]).filter(s=>s.businessDate===d).forEach(s=>kagoReassignTableCastRefs(s.table,from.id,to.id));
+  // 当日営業中の卓を過去日修正で触らないよう、営業日が一致するときだけ反映する。
+  if(d===state.businessDate)(state.tables||[]).forEach(t=>kagoReassignTableCastRefs(t,from.id,to.id));
+
+  // 締め票で選び直したキャストを、その日の出退勤正本として上書きする。
+  from.logs=from.logs||{};to.logs=to.logs||{};
+  const src=from.logs[d]||{};
+  delete from.logs[d];
+  kagoWriteAuthoritativeAttendance(d,to,inTime||src.in||'',outTime||src.out||'');
+
+  // 徴収も「その日のキャスト取り違え」に追従させる。
+  (state.collections||[]).filter(x=>x.businessDate===d&&String(x.castId)===String(from.id)).forEach(x=>{x.castId=to.id;x.updatedAt=new Date().toISOString()});
+
+  // 自動生成抑止：変更元は削除扱いとして残し、変更先は有効化する。
+  state.manualClosingDeleted=state.manualClosingDeleted||{};
+  state.manualClosingDeleted[kagoClosingDeleteKey(d,from.id)]=new Date().toISOString();
+  delete state.manualClosingDeleted[kagoClosingDeleteKey(d,to.id)];
+
+  // 営業終了スナップショット・締め保存値を、修正後の正本から再構築する。
+  syncDerivedAfterReceiptEdit(d);
+}
 saveManualClosingSheet=function(){
   const d=document.getElementById('manualCloseDate')?.value||state.businessDate,cid=document.getElementById('manualCloseCast')?.value,cast=(state.casts||[]).find(c=>String(c.id)===String(cid));if(!d)return alert('営業日を選んでください');
   saveManualDayCloseFromForm(d);if(!cast){save();renderManualClosingList(d);return alert('締め票の売上情報を保存しました。');}
   const rawIn=document.getElementById('manualCloseIn')?.value||'',rawOut=document.getElementById('manualCloseOut')?.value||'',inTime=rawIn?normalizeTimeValue(rawIn,'exact',26):'',outTime=rawOut?normalizeTimeValue(rawOut,'exact',26):'';if(rawIn&&!inTime)return alert('出勤時間の形式が違います');if(rawOut&&!outTime)return alert('退勤時間の形式が違います');
-  const qty={dbQty:numFrom('manualDbQty'),sbQty:numFrom('manualSbQty')},backs=calcManualBacksFromQty(qty),existing=kagoManualEditId?(state.manualClosingSheets||[]).find(x=>x.id===kagoManualEditId):null,linkedBase=existing?.linkedBase||kagoOperationalCastSnapshot(cast,d);
-  const rec={id:existing?.id||uuid(),businessDate:d,castId:cast.id,castName:cast.name,in:inTime,out:outTime,linkedBase,dbQty:qty.dbQty,dbBack:backs.dbBack,sbQty:qty.sbQty,sbBack:backs.sbBack,wheelCount:Number(existing?.wheelCount??linkedBase.wheelCount??0),wheelBack:numFrom('manualWheelBack'),champCount:Number(existing?.champCount??linkedBase.champCount??0),champBack:numFrom('manualChampBack'),callBack:numFrom('manualCallBack'),otherBack:numFrom('manualOtherBack'),memo:document.getElementById('manualMemo')?.value||'',createdAt:existing?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
-  delete state.manualClosingDeleted[rec.id];if(existing)state.manualClosingSheets=state.manualClosingSheets.map(x=>x.id===existing.id?rec:x);else state.manualClosingSheets.push(rec);
-  save();render();selectTitle.textContent='締め票入力';renderManualClosingList(d);kagoResetManualCastForm();kagoLoadOperationalCast();renderManualClosingList(d);alert(existing?'締め票入力を修正しました。':'締め票入力を保存しました。週間表・月間表へ反映済みです。');
+  const existing=kagoManualEditId?(state.manualClosingSheets||[]).find(x=>x.id===kagoManualEditId):null;
+  const castChanged=!!(existing&&String(existing.castId)!==String(cast.id));
+  if(castChanged){
+    // 「移管」ではなく締め票の修正内容で、その日の誤ったキャスト紐付けを直接上書きする。
+    kagoReassignCastForBusinessDate(d,existing.castId,cast.id,inTime,outTime);
+    // 変更先に既存の締め票行があれば、今回の修正行を最終値として一本化する。
+    state.manualClosingSheets=(state.manualClosingSheets||[]).filter(x=>!(x.businessDate===d&&String(x.castId)===String(cast.id)&&x.id!==existing.id));
+  }else{
+    // 新規入力でも、元の営業終了スナップショットに無くても有効。締め票入力をその日の出退勤正本へ書き戻す。
+    kagoWriteAuthoritativeAttendance(d,cast,inTime,outTime);
+  }
+  const qty={dbQty:numFrom('manualDbQty'),sbQty:numFrom('manualSbQty')},backs=calcManualBacksFromQty(qty),linkedBase=castChanged?kagoOperationalCastSnapshot(cast,d):(existing?.linkedBase||kagoOperationalCastSnapshot(cast,d));
+  const rec={id:existing?.id||uuid(),businessDate:d,castId:cast.id,castName:cast.name,in:inTime,out:outTime,linkedBase,dbQty:qty.dbQty,dbBack:backs.dbBack,sbQty:qty.sbQty,sbBack:backs.sbBack,wheelCount:Number(castChanged?linkedBase.wheelCount:(existing?.wheelCount??linkedBase.wheelCount??0)),wheelBack:numFrom('manualWheelBack'),champCount:Number(castChanged?linkedBase.champCount:(existing?.champCount??linkedBase.champCount??0)),champBack:numFrom('manualChampBack'),callBack:numFrom('manualCallBack'),otherBack:numFrom('manualOtherBack'),memo:document.getElementById('manualMemo')?.value||'',createdAt:existing?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),authoritativeClosing:true};
+  delete state.manualClosingDeleted[rec.id];
+  delete state.manualClosingDeleted[kagoClosingDeleteKey(d,cast.id)];
+  if(existing)state.manualClosingSheets=state.manualClosingSheets.map(x=>x.id===existing.id?rec:x);else{
+    state.manualClosingSheets=(state.manualClosingSheets||[]).filter(x=>!(x.businessDate===d&&String(x.castId)===String(cast.id)));
+    state.manualClosingSheets.push(rec);
+  }
+  syncDerivedAfterReceiptEdit(d);
+  save();render();selectTitle.textContent='締め票入力';renderManualClosingList(d);kagoResetManualCastForm();kagoLoadOperationalCast();renderManualClosingList(d);alert(castChanged?'キャスト修正を保存し、その日の営業履歴・締め表・週間/月間へ上書きしました。':(existing?'締め票入力を修正し、その日の営業履歴へ上書きしました。':'締め票入力を保存し、その日の営業履歴・週間/月間へ反映しました。'));
 };
-deleteManualClosingSheet=function(id){const r=(state.manualClosingSheets||[]).find(x=>x.id===id);if(!r||!confirm('この締め票入力を削除しますか？'))return;state.manualClosingDeleted[id]=new Date().toISOString();state.manualClosingDeleted[kagoClosingDeleteKey(r.businessDate,r.castId)]=new Date().toISOString();state.manualClosingSheets=state.manualClosingSheets.filter(x=>x.id!==id);save();render();renderManualClosingList(r.businessDate);};
+deleteManualClosingSheet=function(id){
+  const r=(state.manualClosingSheets||[]).find(x=>x.id===id);if(!r||!confirm('この締め票入力を削除しますか？その日のこのキャストの出退勤・バック紐付けも過去データから削除されます。'))return;
+  state.manualClosingDeleted=state.manualClosingDeleted||{};
+  state.manualClosingDeleted[id]=new Date().toISOString();
+  kagoPurgeCastForBusinessDate(r.businessDate,r.castId);
+  save();render();renderManualClosingList(r.businessDate);
+};
 renderManualClosingList=function(d=state.businessDate){
   const box=document.getElementById('manualClosingList');if(!box)return;ensureKagoOperationalClosingRows(d);const eff=dayRevenueBreakdown(d),rows=manualClosingRowsForDate(d).map(r=>`<tr><td>${esc(r.castName)}</td><td>${esc(r.in||'-')}〜${esc(r.out||'-')}<div class="muted">勤務 ${kagoManualWorkDuration(r)}</div></td><td>${Number(r.dbQty||0)}杯 / ${yen(r.dbBack)}</td><td>${Number(r.sbQty||0)}杯 / ${yen(r.sbBack)}</td><td>${yen(r.wheelBack||0)}</td><td>${yen(r.champBack||0)}</td><td>${yen(r.callBack||0)}</td><td>${yen(r.otherBack||0)}</td><td><button class="btn blue small" onclick="editManualClosingSheet('${r.id}')">修正</button> <button class="btn bad small" onclick="deleteManualClosingSheet('${r.id}')">削除</button></td></tr>`).join('')||'<tr><td colspan="9" class="muted">この日の出勤履歴なし</td></tr>';
   box.innerHTML=`<div class="section">${d} 営業後キャスト履歴</div><div class="summary">${cardStat('売上',eff.total)}${cardStat('現金',eff.cash)}${cardStat('カード',eff.card)}${cardStat('未収',eff.unpaid)}</div><div class="scroll"><table><thead><tr><th>キャスト</th><th>出退勤 / 勤務時間</th><th>DB</th><th>SB</th><th>テキカンB</th><th>シャンパンB</th><th>呼びB</th><th>その他</th><th>編集</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -4731,7 +4867,7 @@ renderManualClosingList=function(d=state.businessDate){
 const kagoStatsBeforeAmamiInput=stats;
 stats=function(cid,d){
   const keep=state.manualClosingSheets;state.manualClosingSheets=[];let o;try{o=kagoStatsBeforeAmamiInput(cid,d)}finally{state.manualClosingSheets=keep}o=o||{};
-  (state.manualClosingSheets||[]).filter(x=>x.businessDate===d&&String(x.castId)===String(cid)).forEach(x=>{const b=x.linkedBase||{};const v=k=>Number(x[k]||0)-Number(b[k]||0);o.dbQty=Number(o.dbQty||0)+v('dbQty');o.dbBack=Number(o.dbBack||0)+v('dbBack');o.sbQty=Number(o.sbQty||0)+v('sbQty');o.sbBack=Number(o.sbBack||0)+v('sbBack');o.wheelCount=Number(o.wheelCount||0)+v('wheelCount');o.wheelBack=Number(o.wheelBack||0)+v('wheelBack');o.champCount=Number(o.champCount||0)+v('champCount');o.champBack=Number(o.champBack||0)+v('champBack');o.callBack=Number(o.callBack||0)+v('callBack');o.otherBack=Number(o.otherBack||0)+v('otherBack');});
+  manualClosingRowsForDate(d).filter(x=>String(x.castId)===String(cid)).forEach(x=>{const b=x.linkedBase||{};const v=k=>Number(x[k]||0)-Number(b[k]||0);o.dbQty=Number(o.dbQty||0)+v('dbQty');o.dbBack=Number(o.dbBack||0)+v('dbBack');o.sbQty=Number(o.sbQty||0)+v('sbQty');o.sbBack=Number(o.sbBack||0)+v('sbBack');o.wheelCount=Number(o.wheelCount||0)+v('wheelCount');o.wheelBack=Number(o.wheelBack||0)+v('wheelBack');o.champCount=Number(o.champCount||0)+v('champCount');o.champBack=Number(o.champBack||0)+v('champBack');o.callBack=Number(o.callBack||0)+v('callBack');o.otherBack=Number(o.otherBack||0)+v('otherBack');});
   o.back=Number(o.dbBack||0)+Number(o.sbBack||0)+Number(o.wheelBack||0)+Number(o.champBack||0)+Number(o.callBack||0)+Number(o.otherBack||0);return o;
 };
 window.openClosingSheetInput=openClosingSheetInput;window.saveManualClosingSheet=saveManualClosingSheet;window.editManualClosingSheet=editManualClosingSheet;window.deleteManualClosingSheet=deleteManualClosingSheet;window.renderManualClosingList=renderManualClosingList;window.kagoLoadManualDate=kagoLoadManualDate;window.kagoResetManualCastForm=kagoResetManualCastForm;window.kagoLoadOperationalCast=kagoLoadOperationalCast;
@@ -5637,6 +5773,196 @@ setInterval(()=>{now=new Date();render()},30000);applyAppLock();initAllTimePicke
     }
   };
   try{renderTables()}catch(e){}
+})();
+</script>
+<script id="kagoshima-monthly-finance-20260927">
+(function(){
+  'use strict';
+  if(window.__KAGO_MONTHLY_FINANCE_20260927__)return;
+  window.__KAGO_MONTHLY_FINANCE_20260927__=true;
+
+  state.monthlyFinance=(state.monthlyFinance&&typeof state.monthlyFinance==='object'&&!Array.isArray(state.monthlyFinance))?state.monthlyFinance:{};
+  let monthlyFinanceViewMonth=String(state.businessDate||new Date().toISOString().slice(0,10)).slice(0,7);
+
+  function safeMonth(ym){
+    ym=String(ym||'');
+    return /^\d{4}-\d{2}$/.test(ym)?ym:String(state.businessDate||new Date().toISOString().slice(0,10)).slice(0,7);
+  }
+  function financeRecord(ym){
+    ym=safeMonth(ym);
+    const src=state.monthlyFinance[ym]||{};
+    const misc=Array.isArray(src.misc)?src.misc:[];
+    const rec={
+      staffLabor:Number(src.staffLabor)||0,
+      rent:Number(src.rent)||0,
+      utilities:Number(src.utilities)||0,
+      misc:[0,1,2].map(i=>({description:String(misc[i]?.description||''),amount:Number(misc[i]?.amount)||0})),
+      updatedAt:src.updatedAt||''
+    };
+    state.monthlyFinance[ym]=rec;
+    return rec;
+  }
+  function financeMonthDays(ym){
+    return typeof monthDays==='function'?monthDays(safeMonth(ym)+'-01'):[];
+  }
+  function monthlySales(ym){
+    const out={cash:0,card:0,cardFee:0,unpaid:0,total:0};
+    financeMonthDays(ym).forEach(d=>{
+      const b=dayRevenueBreakdown(d);
+      const cash=Number(b.cash)||0;
+      const cardBase=Number(b.card)||0;
+      const cardFee=Number(b.cardFee)||0;
+      const unpaid=Number(b.unpaid)||0;
+      out.cash+=cash;
+      out.card+=cardBase+cardFee;
+      out.cardFee+=cardFee;
+      out.unpaid+=unpaid;
+    });
+    out.total=out.cash+out.card+out.unpaid;
+    return out;
+  }
+  function monthlyCastPayroll(ym){
+    const days=financeMonthDays(ym),rows=[];
+    (state.casts||[]).forEach(c=>{
+      const totals=initWeekTotals();
+      let attended=false;
+      days.forEach(d=>{
+        const l=getLog(c,d)||{};
+        if((l.in&&l.in!=='休み')||(l.out&&l.out!=='休み'))attended=true;
+        addDayToTotals(totals,c,d);
+      });
+      const gross=(Number(totals.labor)||0)+(Number(totals.back)||0);
+      const deduction=gross*((Number(c.deductionRate)||0)/100);
+      const collection=Number(totals.collection)||0;
+      const net=Math.round(gross-deduction-collection);
+      if(!attended && gross===0 && collection===0)return;
+      rows.push({id:c.id,name:c.name||'名称未設定',labor:Number(totals.labor)||0,back:Number(totals.back)||0,gross,deduction,collection,net});
+    });
+    rows.sort((a,b)=>b.net-a.net||String(a.name).localeCompare(String(b.name),'ja'));
+    return {rows,total:rows.reduce((a,x)=>a+x.net,0)};
+  }
+  function readNum(id){return Math.max(0,Math.round(Number(document.getElementById(id)?.value)||0));}
+  function saveInputs(showNotice=false){
+    const area=document.getElementById('monthlyFinanceArea');
+    if(!area||!document.getElementById('mfStaffLabor'))return;
+    const ym=safeMonth(monthlyFinanceViewMonth),rec=financeRecord(ym);
+    rec.staffLabor=readNum('mfStaffLabor');
+    rec.rent=readNum('mfRent');
+    rec.utilities=readNum('mfUtilities');
+    rec.misc=[0,1,2].map(i=>({
+      description:String(document.getElementById('mfMiscDesc'+i)?.value||'').trim(),
+      amount:readNum('mfMiscAmount'+i)
+    }));
+    rec.updatedAt=new Date().toISOString();
+    state.monthlyFinance[ym]=rec;
+    if(typeof window.save==='function')window.save();
+    if(showNotice){
+      const el=document.getElementById('mfSaveStatus');
+      if(el){el.textContent='保存しました '+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});setTimeout(()=>{if(el)el.textContent='';},1800);}
+    }
+  }
+  function escAttr(v){return String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function metric(label,value,cls=''){
+    return `<div class="card stat mf-metric ${cls}"><div class="label">${label}</div><div class="val">${yen(value)}</div></div>`;
+  }
+  function render(){
+    const root=document.getElementById('monthlyFinanceArea');if(!root)return;
+    const ym=safeMonth(monthlyFinanceViewMonth),rec=financeRecord(ym),sales=monthlySales(ym),pay=monthlyCastPayroll(ym);
+    const miscTotal=rec.misc.reduce((a,x)=>a+(Number(x.amount)||0),0);
+    const expenseTotal=pay.total+rec.staffLabor+rec.rent+rec.utilities+miscTotal;
+    const profit=sales.total-expenseTotal;
+    const monthEl=document.getElementById('monthlyFinanceMonth');if(monthEl)monthEl.value=ym;
+    const payrollRows=pay.rows.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td class="right">${yen(x.labor)}</td><td class="right">${yen(x.back)}</td><td class="right">-${yen(x.deduction)}</td><td class="right">-${yen(x.collection)}</td><td class="right"><b>${yen(x.net)}</b></td></tr>`).join('')||'<tr><td colspan="6" class="muted">この月の給与データはありません</td></tr>';
+    const miscRows=rec.misc.map((x,i)=>`<div class="mf-misc-row"><div><label>雑費${i+1} 内容</label><input id="mfMiscDesc${i}" value="${escAttr(x.description)}" placeholder="内容を入力"></div><div><label>金額</label><input id="mfMiscAmount${i}" type="number" min="0" step="1" value="${Math.round(Number(x.amount)||0)}"></div></div>`).join('');
+    root.innerHTML=`
+      <div class="mf-hero">
+        ${metric('月間売上',sales.total,'mf-sales')}
+        ${metric('支出合計',expenseTotal,'mf-expense')}
+        ${metric('月間純利益',profit,profit>=0?'mf-profit':'mf-loss')}
+      </div>
+
+      <div class="card mf-block">
+        <div class="row"><h3>売上内訳</h3><span class="muted">${ym}</span></div>
+        <div class="summary mf-summary">
+          ${metric('現金総額',sales.cash)}
+          ${metric('カード総額',sales.card)}
+          ${metric('カード10%総額',sales.cardFee)}
+          ${sales.unpaid?metric('未収',sales.unpaid):''}
+        </div>
+        <p class="muted">カード総額は10%加算分込み。カード10%総額はその内数で、売上へ二重加算しません。${sales.unpaid?' 未収は月間売上に含めています。':''}</p>
+      </div>
+
+      <div class="card mf-block">
+        <div class="row"><h3>キャスト給</h3><div class="card stat mf-pay-total"><div class="label">キャスト給総額</div><div class="val">${yen(pay.total)}</div></div></div>
+        <div class="scroll"><table><thead><tr><th>キャスト</th><th class="right">時間給</th><th class="right">バック</th><th class="right">控除</th><th class="right">徴収</th><th class="right">支給額</th></tr></thead><tbody>${payrollRows}</tbody></table></div>
+        <p class="muted">キャスト給総額は、各キャストの月間「控除・徴収後の支給額」の合計です。</p>
+      </div>
+
+      <div class="card mf-block">
+        <div class="row"><h3>固定費・人件費</h3><span class="muted">この3項目は手入力</span></div>
+        <div class="grid3 mf-input-grid">
+          <div><label>スタッフ人件費</label><input id="mfStaffLabor" type="number" min="0" step="1" value="${Math.round(rec.staffLabor)}"></div>
+          <div><label>家賃</label><input id="mfRent" type="number" min="0" step="1" value="${Math.round(rec.rent)}"></div>
+          <div><label>水道光熱費</label><input id="mfUtilities" type="number" min="0" step="1" value="${Math.round(rec.utilities)}"></div>
+        </div>
+      </div>
+
+      <div class="card mf-block">
+        <div class="row"><h3>雑費</h3><span class="muted">内容＋金額</span></div>
+        <div class="mf-misc-list">${miscRows}</div>
+      </div>
+
+      <div class="card mf-final">
+        <div class="mf-final-row"><span>月間売上</span><b>${yen(sales.total)}</b></div>
+        <div class="mf-final-row"><span>キャスト給</span><b>-${yen(pay.total)}</b></div>
+        <div class="mf-final-row"><span>スタッフ人件費</span><b>-${yen(rec.staffLabor)}</b></div>
+        <div class="mf-final-row"><span>家賃</span><b>-${yen(rec.rent)}</b></div>
+        <div class="mf-final-row"><span>水道光熱費</span><b>-${yen(rec.utilities)}</b></div>
+        <div class="mf-final-row"><span>雑費</span><b>-${yen(miscTotal)}</b></div>
+        <div class="mf-final-row mf-final-total"><span>月間純利益</span><b class="${profit>=0?'mf-positive':'mf-negative'}">${yen(profit)}</b></div>
+        <div class="row no-print" style="margin-top:14px;justify-content:flex-end"><span id="mfSaveStatus" class="muted"></span><button class="btn ok" onclick="saveMonthlyFinanceAndRender()">入力内容を保存</button></div>
+      </div>`;
+  }
+
+  window.saveMonthlyFinanceInputs=saveInputs;
+  window.renderMonthlyFinance=render;
+  window.saveMonthlyFinanceAndRender=function(){saveInputs(false);render();const el=document.getElementById('mfSaveStatus');if(el){el.textContent='保存しました';setTimeout(()=>{const x=document.getElementById('mfSaveStatus');if(x)x.textContent='';},1800);}};
+  window.setMonthlyFinanceMonth=function(ym){saveInputs(false);monthlyFinanceViewMonth=safeMonth(ym);render();};
+  window.shiftMonthlyFinanceMonth=function(delta){
+    saveInputs(false);
+    const ym=safeMonth(monthlyFinanceViewMonth),d=new Date(ym+'-01T00:00:00');
+    d.setMonth(d.getMonth()+(Number(delta)||0));
+    monthlyFinanceViewMonth=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    render();
+  };
+
+  const style=document.createElement('style');
+  style.textContent=`
+    #monthlyFinance{max-width:1500px;margin:0 auto}
+    .monthly-finance-nav{gap:6px;flex-wrap:wrap}
+    .mf-hero{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
+    .mf-block{margin-top:12px}
+    .mf-metric{min-height:96px;display:flex;flex-direction:column;justify-content:center}
+    .mf-metric .label{font-size:13px}.mf-metric .val{font-size:28px;line-height:1.2}
+    .mf-sales{border:2px solid #93c5fd}.mf-expense{border:2px solid #fdba74}.mf-profit{border:2px solid #86efac}.mf-loss{border:2px solid #fca5a5}
+    .mf-pay-total{min-width:190px}.mf-summary{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .mf-input-grid input,.mf-misc-row input{font-size:18px;font-weight:800}
+    .mf-misc-list{display:grid;gap:10px;margin-top:10px}
+    .mf-misc-row{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr);gap:10px;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc}
+    .mf-final{margin-top:12px;border:2px solid #cbd5e1}
+    .mf-final-row{display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-bottom:1px solid #e2e8f0;font-size:16px}
+    .mf-final-row b{font-size:18px}.mf-final-total{border-bottom:0;border-top:2px solid #94a3b8;margin-top:4px;padding-top:14px;font-size:20px}.mf-final-total b{font-size:30px}
+    .mf-positive{color:#15803d}.mf-negative{color:#dc2626}
+    @media(max-width:900px){.mf-hero{grid-template-columns:1fr}.mf-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.mf-misc-row{grid-template-columns:1fr}.mf-metric .val{font-size:24px}.mf-final-total b{font-size:25px}}
+    @media(max-width:540px){.mf-summary{grid-template-columns:1fr}.monthly-finance-nav{width:100%;justify-content:flex-start!important}.monthly-finance-nav input{flex:1}.mf-final-row{font-size:14px}.mf-final-row b{font-size:16px}}
+  `;
+  document.head.appendChild(style);
+
+  const prevOpen=window.openScreen;
+  if(typeof prevOpen==='function'&&!prevOpen.__kagoMonthlyFinance){
+    const wrapped=function(id){if(id!=='monthlyFinance'&&document.getElementById('monthlyFinance')?.classList.contains('active'))saveInputs(false);const r=prevOpen.apply(this,arguments);if(id==='monthlyFinance')setTimeout(render,0);return r;};
+    wrapped.__kagoMonthlyFinance=true;window.openScreen=wrapped;
+  }
 })();
 </script>
 </body>
